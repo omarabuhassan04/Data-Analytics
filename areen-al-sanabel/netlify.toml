@@ -1,0 +1,15 @@
+# نشر على Netlify — بديل عن Vercel لأن شبكة المجموعة تحجب نطاق vercel.app
+#
+# إضافة Next.js الرسمية تتكفّل بمسارات API والطبقة الوسيطة ومكوّنات الخادم،
+# فلا حاجة لتغيير أي شيء في الشيفرة.
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  # Prisma يحتاج نسخة Node حديثة عند توليد العميل
+  NODE_VERSION = "20"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

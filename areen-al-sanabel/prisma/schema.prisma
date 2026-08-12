@@ -1,0 +1,164 @@
+// عرين السنابل — نظام إدارة المخزون والمشتريات
+// Areen Al-Sanabel — Inventory & Procurement System
+//
+// ملاحظة حول قاعدة البيانات / Database note:
+// التطوير المحلي يستخدم SQLite لسهولة التشغيل بدون خادم.
+// للانتقال إلى PostgreSQL: غيّر provider إلى "postgresql" وحدّث DATABASE_URL ثم شغّل
+//   npx prisma migrate dev
+// المخطط مصمّم ليكون متوافقًا مع Postgres: لا توجد أنواع خاصة بـ SQLite،
+// والحقول التصنيفية (الدور/الحالة/النوع) مخزّنة كنصوص لأن SQLite لا يدعم enum في Prisma.
+// قيم هذه الحقول محصورة ومُتحقَّق منها في طبقة التطبيق (src/lib/domain.ts + Zod).
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+/// المستخدمون — تُنشأ الحسابات يدويًا من قِبل قائد اللوازم (لا يوجد تسجيل ذاتي)
+model User {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  fullName     String
+  passwordHash String
+  /// SUPPLIES_LEADER | TEAM_LEADER | GROUP_LEADER | DEPUTY_GROUP_LEADER | SCOUTS_LEADER
+  role         String
+  /// اسم الفرقة — لمسؤولي الفرق فقط
+  teamName     String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  requests     Request[]     @relation("RequestRequester")
+  decisions    Request[]     @relation("RequestDecider")
+  notes        RequestNote[]
+  activityLogs ActivityLog[]
+
+  @@index([role])
+}
+
+/// تصنيفات العتاد الكشفي
+model Category {
+  id        Int    @id @default(autoincrement())
+  name      String @unique
+  /// مفتاح أيقونة lucide لعرضها في الواجهة
+  icon      String @default("package")
+  sortOrder Int    @default(0)
+
+  items Item[]
+}
+
+/// أغراض المخزون
+model Item {
+  id         Int      @id @default(autoincrement())
+  name       String
+  /// وحدة القياس: قطعة، متر، علبة ...
+  unit       String   @default("قطعة")
+  /// الكمية المتاحة حاليًا في المقر (تُخصم فور تقديم طلب العهدة)
+  quantity   Int      @default(0)
+  /// الحد الأدنى للتنبيه بانخفاض المخزون
+  threshold  Int      @default(0)
+  notes      String?
+  photoUrl   String?
+  isActive   Boolean  @default(true)
+  categoryId Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  category Category      @relation(fields: [categoryId], references: [id])
+  lines    RequestLine[]
+
+  @@unique([name, categoryId])
+  @@index([categoryId])
+}
+
+/// الطلبات — عهدة / كمية إضافية / شراء
+model Request {
+  id           Int       @id @default(autoincrement())
+  /// EQUIPMENT (عهدة) | ADDITIONAL (كمية إضافية) | PURCHASE (شراء)
+  type         String
+  /// PENDING | UNDER_REVIEW | APPROVED | REJECTED | CANCELLED
+  status       String    @default("PENDING")
+  requesterId  Int
+  /// نسخة من اسم الفرقة وقت التقديم (حتى لو تغيّر لاحقًا)
+  teamName     String
+  /// الغرض من الطلب / المناسبة
+  purpose      String?
+  /// تاريخ الحاجة
+  neededOn     DateTime?
+  decidedById  Int?
+  decidedAt    DateTime?
+  /// سبب القبول أو الرفض
+  decisionNote String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  requester User          @relation("RequestRequester", fields: [requesterId], references: [id])
+  decidedBy User?         @relation("RequestDecider", fields: [decidedById], references: [id])
+  lines     RequestLine[]
+  notes     RequestNote[]
+
+  @@index([requesterId])
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
+}
+
+/// أسطر الطلب
+model RequestLine {
+  id        Int     @id @default(autoincrement())
+  requestId Int
+  /// يكون فارغًا في طلبات شراء أغراض غير موجودة أصلًا في المخزون
+  itemId    Int?
+  /// نسخة من اسم الغرض وقت الطلب (أو الاسم الحر في طلب الشراء)
+  itemName  String
+  unit      String  @default("قطعة")
+  quantity  Int
+  /// الكمية التي خُصمت فعليًا من المخزون لهذا السطر — تُستخدم للإرجاع الدقيق عند الرفض/الإلغاء
+  deducted  Int     @default(0)
+  note      String?
+
+  request Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  item    Item?   @relation(fields: [itemId], references: [id])
+
+  @@index([requestId])
+  @@index([itemId])
+}
+
+/// ملاحظات على الطلبات (قائد الكشافين + قائد اللوازم)
+model RequestNote {
+  id        Int      @id @default(autoincrement())
+  requestId Int
+  authorId  Int
+  body      String
+  createdAt DateTime @default(now())
+
+  request Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  author  User    @relation(fields: [authorId], references: [id])
+
+  @@index([requestId])
+}
+
+/// سجل النشاط — مسار تدقيق كامل لقائد اللوازم
+model ActivityLog {
+  id        Int      @id @default(autoincrement())
+  actorId   Int?
+  /// نسخة من اسم المنفّذ حتى لو حُذف الحساب لاحقًا
+  actorName String
+  /// LOGIN | ITEM_CREATE | REQUEST_SUBMIT | REQUEST_APPROVE ...
+  action    String
+  /// Request | Item | User | Auth
+  entity    String
+  entityId  Int?
+  /// وصف عربي جاهز للعرض
+  summary   String
+  createdAt DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([entity, entityId])
+}

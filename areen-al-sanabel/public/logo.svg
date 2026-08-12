@@ -1,0 +1,114 @@
+<!--
+  شعار عرين السنابل — رسم متجهي مطابق لتصميم الشعار الرسمي:
+  زهرة الزنبق الكشفية بالأحمر تتوسّطها النجمة السباعية البيضاء،
+  جناحان بالأخضر والأسود على هيئة الكوفية، سنابل قمح ذهبية خلفها،
+  عقدة حبل برتقالية في الأسفل، وإطار دائري بألوان العلم الأردني.
+
+  لاستبداله بالملف الرسمي (PNG/JPG): ضع الملف في مجلد public/ ثم
+  عدّل ثابت LOGO_SRC في src/components/logo.tsx — موضع واحد فقط.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="شعار عرين السنابل">
+  <defs>
+    <linearGradient id="wheat" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#c8961e" />
+      <stop offset="100%" stop-color="#f2c75c" />
+    </linearGradient>
+    <linearGradient id="lily" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#d0202f" />
+      <stop offset="100%" stop-color="#a3151f" />
+    </linearGradient>
+  </defs>
+
+  <!-- أرضية الشعار والإطار بألوان العلم -->
+  <circle cx="100" cy="100" r="100" fill="#ffffff" />
+  <circle cx="100" cy="100" r="97.5" fill="none" stroke="#0f7a3d" stroke-width="2" />
+  <circle cx="100" cy="100" r="93.5" fill="none" stroke="#101418" stroke-width="1.4" />
+  <circle cx="100" cy="100" r="90.5" fill="none" stroke="#c8102e" stroke-width="2" />
+
+  <!-- سنابل القمح — خلف الزهرة -->
+  <g fill="url(#wheat)" stroke="url(#wheat)">
+    <g id="stalk">
+      <path d="M108,106 C118,92 128,74 137,57" fill="none" stroke-width="2.6" stroke-linecap="round" />
+      <ellipse cx="113" cy="99" rx="3.1" ry="5.6" transform="rotate(35 113 99)" />
+      <ellipse cx="119" cy="90" rx="3.1" ry="5.6" transform="rotate(35 119 90)" />
+      <ellipse cx="125" cy="80" rx="3.1" ry="5.6" transform="rotate(35 125 80)" />
+      <ellipse cx="130" cy="70" rx="3.1" ry="5.6" transform="rotate(35 130 70)" />
+      <ellipse cx="134" cy="61" rx="3" ry="5.4" transform="rotate(35 134 61)" />
+      <ellipse cx="120" cy="99" rx="2.9" ry="5.2" transform="rotate(62 120 99)" />
+      <ellipse cx="126" cy="90" rx="2.9" ry="5.2" transform="rotate(62 126 90)" />
+      <ellipse cx="131" cy="80" rx="2.9" ry="5.2" transform="rotate(62 131 80)" />
+      <ellipse cx="136" cy="70" rx="2.9" ry="5.2" transform="rotate(62 136 70)" />
+    </g>
+    <use href="#stalk" transform="translate(200,0) scale(-1,1)" />
+  </g>
+
+  <!-- الجناحان: الأخضر يمينًا في الرسم (يسار الناظر) والأسود مقابله -->
+  <g stroke-linejoin="round">
+    <g id="wing">
+      <path
+        d="M122,78 C135,61 154,57 161,68 C167,78 159,95 145,104 C151,90 149,78 140,76 C132,74 126,82 122,90 Z"
+        fill="#101418"
+      />
+      <path d="M133,72 C140,67 147,66 151,69" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" />
+      <path d="M137,80 C143,76 148,75 152,77" fill="none" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" />
+    </g>
+    <g transform="translate(200,0) scale(-1,1)">
+      <path
+        d="M122,78 C135,61 154,57 161,68 C167,78 159,95 145,104 C151,90 149,78 140,76 C132,74 126,82 122,90 Z"
+        fill="#0f7a3d"
+      />
+      <path d="M133,72 C140,67 147,66 151,69" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" />
+      <path d="M137,80 C143,76 148,75 152,77" fill="none" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" />
+    </g>
+  </g>
+
+  <!-- زهرة الزنبق الكشفية -->
+  <path
+    d="M100,29 C112,47 123,66 123,89 C123,108 114,120 100,129 C86,120 77,108 77,89 C77,66 88,47 100,29 Z"
+    fill="url(#lily)"
+  />
+
+  <!-- النجمة السباعية -->
+  <g transform="translate(100,66)">
+    <polygon
+      fill="#ffffff"
+      points="0,-15 3.09,-6.42 11.73,-9.35 6.95,-1.59 14.62,3.34 5.57,4.44 6.51,13.52 0,7.13 -6.51,13.52 -5.57,4.44 -14.62,3.34 -6.95,-1.59 -11.73,-9.35 -3.09,-6.42"
+    />
+  </g>
+
+  <!-- الحبل والعقدة -->
+  <g fill="none" stroke="#dd8b34" stroke-width="3.4" stroke-linecap="round">
+    <path d="M79,95 C72,111 79,126 92,132" />
+    <path d="M121,95 C128,111 121,126 108,132" />
+    <circle cx="93" cy="136" r="5.6" />
+    <circle cx="107" cy="136" r="5.6" />
+    <path d="M88,141 C85,146 83,150 81,153" />
+    <path d="M112,141 C115,146 117,150 119,153" />
+  </g>
+  <!-- خطوط الجدل داخل الحبل -->
+  <g fill="none" stroke="#b76a1d" stroke-width="0.9" stroke-linecap="round" opacity="0.75">
+    <path d="M79,95 C72,111 79,126 92,132" stroke-dasharray="1.6 4.2" />
+    <path d="M121,95 C128,111 121,126 108,132" stroke-dasharray="1.6 4.2" />
+  </g>
+
+  <!-- الكتابة -->
+  <text
+    x="100"
+    y="166"
+    text-anchor="middle"
+    font-family="Cairo, system-ui, sans-serif"
+    font-size="12.5"
+    font-weight="800"
+    fill="#101418"
+  >مجموعة السنابل الكشفية</text>
+  <text
+    x="100"
+    y="179"
+    text-anchor="middle"
+    font-family="Cairo, system-ui, sans-serif"
+    font-size="7.6"
+    font-weight="600"
+    letter-spacing="0.4"
+    fill="#101418"
+  >Al-Snabel Scouting Group</text>
+</svg>
