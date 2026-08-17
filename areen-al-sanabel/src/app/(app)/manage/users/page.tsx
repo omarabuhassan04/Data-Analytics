@@ -1,9 +1,14 @@
 "use client";
 
-import { KeyRound, Pencil, UserPlus, Users } from "lucide-react";
 import { useState } from "react";
 import useSWR from "swr";
 
+import {
+  IconEdit,
+  IconKey,
+  IconTroop,
+  IconTroopAdd,
+} from "@/components/icons";
 import { RoleBadge } from "@/components/status";
 import { useSessionUser } from "@/components/session";
 import { useToast } from "@/components/toast";
@@ -21,7 +26,7 @@ import {
   Select,
 } from "@/components/ui";
 import { apiPatch, apiPost, errorMessage } from "@/lib/client";
-import { ROLE_DESCRIPTIONS, ROLE_LABELS, ROLES, type Role } from "@/lib/domain";
+import { ROLE_LABELS, ROLES, type Role } from "@/lib/domain";
 import { formatDate } from "@/lib/format";
 import type { UserDto } from "@/lib/types";
 
@@ -115,10 +120,9 @@ export default function ManageUsersPage() {
     <div>
       <PageHeader
         title="إدارة الحسابات"
-        description="إنشاء حسابات مسؤولي الفرق والقيادة وتحديد أدوارها"
         action={
           <Button size="sm" onClick={openCreate}>
-            <UserPlus className="size-4" />
+            <IconTroopAdd className="size-4" />
             حساب جديد
           </Button>
         }
@@ -129,7 +133,7 @@ export default function ManageUsersPage() {
 
       {data && users.length === 0 && (
         <Card>
-          <EmptyState icon={<Users className="size-6" />} title="لا توجد حسابات" />
+          <EmptyState icon={<IconTroop className="size-6" />} title="لا توجد حسابات" />
         </Card>
       )}
 
@@ -181,7 +185,7 @@ export default function ManageUsersPage() {
                           aria-label={`تعديل ${user.fullName}`}
                           className="grid size-9 place-items-center rounded-lg text-ink-400 transition-colors hover:bg-sand-100 hover:text-ink-800"
                         >
-                          <Pencil className="size-4" />
+                          <IconEdit className="size-4" />
                         </button>
                         <button
                           type="button"
@@ -189,7 +193,7 @@ export default function ManageUsersPage() {
                           aria-label={`إعادة تعيين كلمة مرور ${user.fullName}`}
                           className="grid size-9 place-items-center rounded-lg text-ink-400 transition-colors hover:bg-sand-100 hover:text-ink-800"
                         >
-                          <KeyRound className="size-4" />
+                          <IconKey className="size-4" />
                         </button>
                         <Button
                           variant="ghost"
@@ -223,7 +227,7 @@ export default function ManageUsersPage() {
             <Field
               label="اسم الدخول"
               required
-              hint="حروف لاتينية وأرقام ونقطة وشرطة فقط — لا يمكن تغييره لاحقًا"
+              hint="لا يمكن تغييره لاحقًا"
             >
               <Input
                 dir="ltr"
@@ -260,7 +264,7 @@ export default function ManageUsersPage() {
             </Field>
           )}
 
-          <Field label="الدور" required hint={ROLE_DESCRIPTIONS[form.role]}>
+          <Field label="الدور" required>
             <Select
               value={form.role}
               onChange={(event) => setForm({ ...form, role: event.target.value as Role })}

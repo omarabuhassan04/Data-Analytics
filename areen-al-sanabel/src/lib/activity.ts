@@ -21,6 +21,9 @@ export type ActivityAction =
   | "REQUEST_REVIEW"
   | "REQUEST_CANCEL"
   | "REQUEST_NOTE"
+  | "RETURN_RECEIVE"
+  | "QC_RELEASE"
+  | "QC_WRITE_OFF"
   | "USER_CREATE"
   | "USER_UPDATE"
   | "USER_PASSWORD";

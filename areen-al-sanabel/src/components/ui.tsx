@@ -1,9 +1,9 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Loader2, X } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
 
+import { IconClose } from "@/components/icons";
 import { cn } from "@/lib/cn";
 
 /* ------------------------------------------------------------------ الأزرار */
@@ -12,19 +12,19 @@ type ButtonVariant = "primary" | "secondary" | "danger" | "success" | "ghost";
 type ButtonSize = "sm" | "md" | "lg";
 
 const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
-  // حبر داكن على جمرة ساطعة: تباين 8.1:1 بدل 2.7:1 للأبيض على البرتقالي
-  primary:
-    "bg-ember-400 text-[#2a1408] shadow-[0_8px_24px_-10px_rgba(255,143,31,0.75)] hover:bg-ember-300",
-  secondary: "bg-sand-100 text-ink-800 border border-sand-300 hover:bg-sand-200 hover:border-sand-400",
-  danger: "bg-crimson-200 text-crimson-700 hover:bg-[#8f342b]",
-  success: "bg-forest-200 text-forest-700 hover:bg-[#246d5c]",
+  // حبر داكن على نحاس فاتح — تباين عالٍ بلا وهج
+  primary: "bg-ember-400 text-sand-50 hover:bg-ember-300",
+  secondary:
+    "bg-sand-100 text-ink-800 border border-sand-300 hover:bg-sand-200 hover:border-sand-400",
+  danger: "bg-crimson-200 text-crimson-700 hover:border-crimson-500",
+  success: "bg-forest-200 text-forest-700 hover:border-forest-500",
   ghost: "bg-transparent text-ink-600 hover:bg-sand-100",
 };
 
 const BUTTON_SIZES: Record<ButtonSize, string> = {
   sm: "h-9 px-3 text-sm gap-1.5 rounded-lg",
-  md: "h-11 px-4 text-[15px] gap-2 rounded-xl",
-  lg: "h-12 px-6 text-base gap-2 rounded-xl",
+  md: "h-10 px-4 text-[15px] gap-2 rounded-lg",
+  lg: "h-11 px-5 text-[15px] gap-2 rounded-lg",
 };
 
 type ButtonProps = React.ComponentProps<"button"> & {
@@ -56,7 +56,7 @@ export function Button({
       disabled={disabled || loading}
       {...(props as React.ComponentProps<typeof motion.button>)}
     >
-      {loading && <Loader2 className="size-4 animate-spin" aria-hidden />}
+      {loading && <Spinner className="size-4" />}
       {children}
     </motion.button>
   );
@@ -71,11 +71,7 @@ export function Card({
 }: React.ComponentProps<"div">) {
   return (
     <div
-      className={cn(
-        "rounded-2xl border border-sand-200 bg-sand-100/80 backdrop-blur-md",
-        "shadow-[0_18px_45px_-22px_rgba(0,0,0,0.9)]",
-        className,
-      )}
+      className={cn("rounded-xl border border-sand-200 bg-sand-100", className)}
       {...props}
     >
       {children}
@@ -199,8 +195,24 @@ export function Select({ className, children, ...props }: React.ComponentProps<"
 
 /* ------------------------------------------------------------- حالات الصفحة */
 
+/** مؤشّر انتظار — قوس بوصلة يدور */
 export function Spinner({ className }: { className?: string }) {
-  return <Loader2 className={cn("size-5 animate-spin text-ember-500", className)} aria-hidden />;
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={cn("size-5 animate-spin text-ember-400", className)}
+      aria-hidden
+    >
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" opacity="0.25" />
+      <path
+        d="M21 12a9 9 0 0 0-9-9"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
 }
 
 export function LoadingBlock({ label = "جارٍ التحميل…" }: { label?: string }) {
@@ -309,9 +321,9 @@ export function Modal({
                 type="button"
                 onClick={onClose}
                 aria-label="إغلاق"
-                className="grid size-9 shrink-0 place-items-center rounded-lg text-ink-400 transition-colors hover:bg-sand-100 hover:text-ink-800"
+                className="grid size-9 shrink-0 place-items-center rounded-lg text-ink-400 transition-colors hover:bg-sand-200 hover:text-ink-800"
               >
-                <X className="size-5" />
+                <IconClose className="size-5" />
               </button>
             </div>
             {children}
@@ -330,18 +342,115 @@ export function PageHeader({
   action,
 }: {
   title: string;
+  /** يُستخدم فقط حين يحمل معلومة لا يقولها العنوان — لا شرحًا للعنوان */
   description?: string;
   action?: ReactNode;
 }) {
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
       <div>
-        <h1 className="text-2xl font-extrabold tracking-tight text-ink-900 sm:text-[28px]">
+        <h1 className="text-[22px] font-extrabold tracking-tight text-ink-900 sm:text-2xl">
           {title}
         </h1>
         {description && <p className="mt-1 text-sm text-ink-400">{description}</p>}
       </div>
       {action}
+    </div>
+  );
+}
+
+/* --------------------------------------------------------------- المقاييس */
+
+type StatTone = "neutral" | "warm" | "good" | "bad";
+
+const STAT_TONES: Record<StatTone, string> = {
+  neutral: "text-ink-900",
+  warm: "text-ember-300",
+  good: "text-forest-600",
+  bad: "text-crimson-600",
+};
+
+/**
+ * رقم واحد مع تسميته.
+ * الرقم هو البطل: حجمه أكبر بمرتبتين من تسميته، ومحارفه متساوية العرض
+ * حتى تبقى الأرقام في صفٍّ واحد قابلة للمقارنة بالنظر.
+ */
+export function Stat({
+  label,
+  value,
+  suffix,
+  hint,
+  icon,
+  tone = "neutral",
+}: {
+  label: string;
+  value: ReactNode;
+  suffix?: string;
+  hint?: string;
+  icon?: ReactNode;
+  tone?: StatTone;
+}) {
+  return (
+    <div className="rounded-xl border border-sand-200 bg-sand-100 p-4">
+      <div className="flex items-center gap-2 text-ink-400">
+        {icon && <span className="shrink-0">{icon}</span>}
+        <span className="text-xs font-semibold">{label}</span>
+      </div>
+      <p className={cn("tabular mt-2 text-2xl font-extrabold", STAT_TONES[tone])}>
+        {value}
+        {suffix && <span className="ms-1 text-sm font-bold text-ink-400">{suffix}</span>}
+      </p>
+      {hint && <p className="mt-0.5 text-xs text-ink-400">{hint}</p>}
+    </div>
+  );
+}
+
+const METER_TONES: Record<StatTone, string> = {
+  neutral: "bg-ink-400",
+  warm: "bg-ember-400",
+  good: "bg-forest-500",
+  bad: "bg-crimson-500",
+};
+
+/** شريط نسبة مسطّح — بلا وهج ولا جسيمات، النسبة وحدها هي المعلومة */
+export function Meter({
+  label,
+  value,
+  max,
+  suffix,
+  tone = "neutral",
+}: {
+  label: string;
+  value: number;
+  max: number;
+  suffix?: string;
+  tone?: StatTone;
+}) {
+  const safeMax = Math.max(max, 1);
+  const percent = Math.min(100, Math.max(0, (value / safeMax) * 100));
+
+  return (
+    <div>
+      <div className="mb-1.5 flex items-baseline justify-between gap-2">
+        <span className="text-sm font-semibold text-ink-600">{label}</span>
+        <span className="tabular text-sm font-bold text-ink-900">
+          {value}
+          {suffix && <span className="ms-1 text-xs font-medium text-ink-400">{suffix}</span>}
+        </span>
+      </div>
+      <div
+        className="h-1.5 overflow-hidden rounded-full bg-sand-300"
+        role="meter"
+        aria-valuenow={value}
+        aria-valuemin={0}
+        aria-valuemax={safeMax}
+        aria-label={label}
+      >
+        <div
+          className={cn("h-full rounded-full transition-[width]", METER_TONES[tone])}
+          style={{ width: `${percent}%` }}
+        />
+      </div>
     </div>
   );
 }

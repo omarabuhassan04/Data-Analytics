@@ -14,7 +14,6 @@ export default async function AllRequestsPage({
     <div>
       <PageHeader
         title="جميع الطلبات"
-        description="طلبات جميع الفرق — قابلة للتصفية حسب النوع والحالة والفرقة"
       />
       <RequestsList scope="all" initialStatus={params.status} />
     </div>

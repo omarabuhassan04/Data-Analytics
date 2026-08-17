@@ -57,8 +57,10 @@ model Item {
   name       String
   /// وحدة القياس: قطعة، متر، علبة ...
   unit       String   @default("قطعة")
-  /// الكمية المتاحة حاليًا في المقر (تُخصم فور تقديم طلب العهدة)
+  /// الكمية المتاحة للصرف حاليًا (تُخصم فور تقديم طلب العهدة)
   quantity   Int      @default(0)
+  /// كمية راجعة محتجزة في فحص الجودة — موجودة في المقر لكنها غير قابلة للصرف
+  quarantine Int      @default(0)
   /// الحد الأدنى للتنبيه بانخفاض المخزون
   threshold  Int      @default(0)
   notes      String?
@@ -68,8 +70,9 @@ model Item {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  category Category      @relation(fields: [categoryId], references: [id])
-  lines    RequestLine[]
+  category  Category        @relation(fields: [categoryId], references: [id])
+  lines     RequestLine[]
+  movements StockMovement[]
 
   @@unique([name, categoryId])
   @@index([categoryId])
@@ -108,24 +111,76 @@ model Request {
 }
 
 /// أسطر الطلب
+///
+/// دفتر حساب السطر الواحد. كل العدّادات تراكمية ولا تُصفَّر، والكمية المعلّقة
+/// (ما زال في يد الفرقة) تُحسب دائمًا بالطرح:
+///   outstanding = deducted - released - returned - quarantined - writtenOff
+/// انظر lineOutstanding() في src/lib/domain.ts — هي المرجع الوحيد لهذه المعادلة.
 model RequestLine {
-  id        Int     @id @default(autoincrement())
-  requestId Int
+  id          Int     @id @default(autoincrement())
+  requestId   Int
   /// يكون فارغًا في طلبات شراء أغراض غير موجودة أصلًا في المخزون
-  itemId    Int?
+  itemId      Int?
   /// نسخة من اسم الغرض وقت الطلب (أو الاسم الحر في طلب الشراء)
-  itemName  String
-  unit      String  @default("قطعة")
-  quantity  Int
-  /// الكمية التي خُصمت فعليًا من المخزون لهذا السطر — تُستخدم للإرجاع الدقيق عند الرفض/الإلغاء
-  deducted  Int     @default(0)
-  note      String?
+  itemName    String
+  unit        String  @default("قطعة")
+  quantity    Int
+  /// إجمالي ما خُصم من المخزون لهذا السطر — لا يتغيّر بعد إنشاء الطلب
+  deducted    Int     @default(0)
+  /// ما أُعيد لأن الطلب رُفض أو أُلغي قبل التسليم (فكّ الحجز)
+  released    Int     @default(0)
+  /// ما رجع فعليًا بعد التسليم ودخل المخزون المتاح
+  returned    Int     @default(0)
+  /// ما رجع محتجزًا في فحص الجودة وما زال محتجزًا الآن
+  quarantined Int     @default(0)
+  /// ما شُطب نهائيًا: مفقود أو تالف لا يُصلَح
+  writtenOff  Int     @default(0)
+  note        String?
 
-  request Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  item    Item?   @relation(fields: [itemId], references: [id])
+  request   Request         @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  item      Item?           @relation(fields: [itemId], references: [id])
+  movements StockMovement[]
 
   @@index([requestId])
   @@index([itemId])
+}
+
+/// دفتر حركة المخزون — السجل المحاسبي الذي تُشتقّ منه كل الأرصدة
+///
+/// كل تغيّر في كمية أي غرض يمرّ من هنا حصرًا (src/lib/stock.ts).
+/// شرط المطابقة الذي يفرضه /api/inventory/reconcile:
+///   SUM(availableDelta) = Item.quantity   و   SUM(quarantineDelta) = Item.quarantine
+model StockMovement {
+  id            Int    @id @default(autoincrement())
+  itemId        Int
+  /// OPENING | RECEIVE | ADJUST | RESERVE | RELEASE | RETURN | QC_HOLD | QC_RELEASE | QC_WRITE_OFF | WRITE_OFF
+  reason        String
+  /// عدد الوحدات التي يخصّها الحدث — موجب دائمًا، للقراءة البشرية
+  units         Int
+  /// أثر الحدث على الكمية المتاحة (سالب = خرجت من المخزون)
+  availableDelta  Int  @default(0)
+  /// أثر الحدث على كمية فحص الجودة
+  quarantineDelta Int  @default(0)
+  /// رصيد ما بعد الحركة — لقطة تدقيق تُغني عن إعادة الحساب
+  availableAfter  Int
+  quarantineAfter Int
+
+  requestId     Int?
+  requestLineId Int?
+  actorId       Int?
+  /// نسخة من اسم المنفّذ حتى لو حُذف الحساب لاحقًا
+  actorName     String
+  note          String?
+  createdAt     DateTime @default(now())
+
+  item        Item         @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  requestLine RequestLine? @relation(fields: [requestLineId], references: [id], onDelete: SetNull)
+
+  @@index([itemId, createdAt])
+  @@index([requestId])
+  @@index([requestLineId])
+  @@index([reason])
+  @@index([createdAt])
 }
 
 /// ملاحظات على الطلبات (قائد الكشافين + قائد اللوازم)

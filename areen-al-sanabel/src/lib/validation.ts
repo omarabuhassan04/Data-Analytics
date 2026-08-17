@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   MAX_LINE_QUANTITY,
   MAX_REQUEST_LINES,
+  QC_OUTCOMES,
   REQUEST_TYPES,
   ROLES,
 } from "@/lib/domain";
@@ -104,6 +105,36 @@ export const decisionSchema = z.object({
 
 export const noteCreateSchema = z.object({
   body: trimmed(1000, "نص الملاحظة"),
+});
+
+/* --------------------------------------------------------------- المرتجعات */
+
+const returnLineSchema = z
+  .object({
+    lineId: positiveInt("رقم السطر", 1_000_000_000),
+    /** رجع سليمًا ويدخل المخزون المتاح */
+    good: nonNegativeInt("الكمية السليمة", MAX_LINE_QUANTITY).default(0),
+    /** رجع ويحتاج فحص جودة قبل إتاحته */
+    damaged: nonNegativeInt("الكمية للفحص", MAX_LINE_QUANTITY).default(0),
+    /** لم يرجع — مفقود */
+    lost: nonNegativeInt("الكمية المفقودة", MAX_LINE_QUANTITY).default(0),
+    note: optionalText(300),
+  })
+  .refine((line) => line.good + line.damaged + line.lost <= MAX_LINE_QUANTITY, {
+    message: "مجموع الكميات يتجاوز الحد المسموح",
+  });
+
+export const returnCreateSchema = z.object({
+  lines: z
+    .array(returnLineSchema)
+    .min(1, "أضِف سطرًا واحدًا على الأقل")
+    .max(MAX_REQUEST_LINES, `لا يمكن تجاوز ${MAX_REQUEST_LINES} سطرًا في الاستلام الواحد`),
+});
+
+export const qcResolveSchema = z.object({
+  units: positiveInt("الكمية"),
+  outcome: z.enum(QC_OUTCOMES, { error: "مآل الفحص غير صالح" }),
+  note: optionalText(300),
 });
 
 /* --------------------------------------------------------------- المستخدمون */

@@ -1,15 +1,15 @@
 "use client";
 
 import { motion } from "framer-motion";
-import {
-  Boxes,
-  ClipboardList,
-  LogIn,
-  ScrollText,
-  UserCog,
-} from "lucide-react";
 import useSWR from "swr";
 
+import {
+  IconDepot,
+  IconEnter,
+  IconLogbook,
+  IconManifest,
+  IconTroop,
+} from "@/components/icons";
 import {
   Card,
   EmptyState,
@@ -22,11 +22,11 @@ import { formatDateTime, formatRelative } from "@/lib/format";
 import type { ActivityDto } from "@/lib/types";
 
 const ENTITY_ICONS: Record<string, React.ReactNode> = {
-  Auth: <LogIn className="size-4" />,
-  Item: <Boxes className="size-4" />,
-  Category: <Boxes className="size-4" />,
-  Request: <ClipboardList className="size-4" />,
-  User: <UserCog className="size-4" />,
+  Auth: <IconEnter className="size-4" />,
+  Item: <IconDepot className="size-4" />,
+  Category: <IconDepot className="size-4" />,
+  Request: <IconManifest className="size-4" />,
+  User: <IconTroop className="size-4" />,
 };
 
 const ENTITY_TONES: Record<string, string> = {
@@ -49,7 +49,6 @@ export default function ActivityPage() {
     <div>
       <PageHeader
         title="سجل النشاط"
-        description="مسار تدقيق كامل: من طلب، ومن وافق، ومتى تغيّر المخزون"
       />
 
       {error && <ErrorBlock message={errorMessage(error)} />}
@@ -57,7 +56,7 @@ export default function ActivityPage() {
 
       {data && entries.length === 0 && (
         <Card>
-          <EmptyState icon={<ScrollText className="size-6" />} title="السجل فارغ" />
+          <EmptyState icon={<IconLogbook className="size-6" />} title="السجل فارغ" />
         </Card>
       )}
 
@@ -77,7 +76,7 @@ export default function ActivityPage() {
                     ENTITY_TONES[entry.entity] ?? "bg-sand-100 text-ink-500"
                   }`}
                 >
-                  {ENTITY_ICONS[entry.entity] ?? <ScrollText className="size-4" />}
+                  {ENTITY_ICONS[entry.entity] ?? <IconLogbook className="size-4" />}
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm leading-relaxed text-ink-800">

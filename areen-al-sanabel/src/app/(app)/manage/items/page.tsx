@@ -1,18 +1,18 @@
 "use client";
 
 import { motion } from "framer-motion";
-import {
-  Boxes,
-  FolderPlus,
-  Pencil,
-  Plus,
-  Search,
-  Trash2,
-  TriangleAlert,
-} from "lucide-react";
 import { useMemo, useState } from "react";
 import useSWR from "swr";
 
+import {
+  IconCategoryAdd,
+  IconDepot,
+  IconEdit,
+  IconPlus,
+  IconSearch,
+  IconTrash,
+  IconWhistle,
+} from "@/components/icons";
 import { StockBadge } from "@/components/status";
 import { useToast } from "@/components/toast";
 import {
@@ -159,15 +159,14 @@ export default function ManageItemsPage() {
     <div>
       <PageHeader
         title="إدارة المخزون"
-        description="إضافة الأغراض وتعديل الكميات وضبط حدود التنبيه"
         action={
           <div className="flex gap-2">
             <Button variant="secondary" size="sm" onClick={() => setCategoryOpen(true)}>
-              <FolderPlus className="size-4" />
+              <IconCategoryAdd className="size-4" />
               تصنيف جديد
             </Button>
             <Button size="sm" onClick={openCreate} disabled={categories.length === 0}>
-              <Plus className="size-4" />
+              <IconPlus className="size-4" />
               غرض جديد
             </Button>
           </div>
@@ -177,7 +176,7 @@ export default function ManageItemsPage() {
       <Card className="mb-5 p-4">
         <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
           <div className="relative">
-            <Search className="pointer-events-none absolute inset-y-0 start-3 my-auto size-4.5 text-ink-300" />
+            <IconSearch className="pointer-events-none absolute inset-y-0 start-3 my-auto size-4.5 text-ink-300" />
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
@@ -207,9 +206,8 @@ export default function ManageItemsPage() {
       {itemsData && items.length === 0 && (
         <Card>
           <EmptyState
-            icon={<Boxes className="size-6" />}
+            icon={<IconDepot className="size-6" />}
             title="لا توجد أغراض"
-            description="ابدأ بإضافة تصنيف ثم أضِف الأغراض إليه."
             action={<Button onClick={openCreate}>إضافة غرض</Button>}
           />
         </Card>
@@ -265,7 +263,7 @@ export default function ManageItemsPage() {
                           aria-label={`تعديل ${item.name}`}
                           className="grid size-9 place-items-center rounded-lg text-ink-400 transition-colors hover:bg-sand-100 hover:text-ink-800"
                         >
-                          <Pencil className="size-4" />
+                          <IconEdit className="size-4" />
                         </button>
                         <button
                           type="button"
@@ -273,7 +271,7 @@ export default function ManageItemsPage() {
                           aria-label={`حذف ${item.name}`}
                           className="grid size-9 place-items-center rounded-lg text-ink-400 transition-colors hover:bg-crimson-50 hover:text-crimson-600"
                         >
-                          <Trash2 className="size-4" />
+                          <IconTrash className="size-4" />
                         </button>
                       </div>
                     </td>
@@ -359,14 +357,14 @@ export default function ManageItemsPage() {
               value={form.notes}
               onChange={(event) => setForm({ ...form, notes: event.target.value })}
               rows={2}
-              placeholder="حالة الغرض، مكان التخزين، ملاحظات صيانة…"
+              placeholder="ملاحظات"
             />
           </Field>
 
           {quantityChanged && (
             <div className="rounded-xl border border-ember-200 bg-ember-50 p-3">
               <p className="flex items-center gap-1.5 text-xs font-bold text-ember-700">
-                <TriangleAlert className="size-4" />
+                <IconWhistle className="size-4" />
                 تعديل الكمية من {formatNumber(editing.quantity)} إلى{" "}
                 {formatNumber(Number(form.quantity) || 0)}
               </p>
@@ -376,7 +374,7 @@ export default function ManageItemsPage() {
                   onChange={(event) =>
                     setForm({ ...form, adjustmentReason: event.target.value })
                   }
-                  placeholder="مثال: إرجاع عهدة، جرد، شراء جديد"
+                  placeholder="سبب التعديل"
                   className="mt-1 bg-sand-50"
                 />
               </Field>

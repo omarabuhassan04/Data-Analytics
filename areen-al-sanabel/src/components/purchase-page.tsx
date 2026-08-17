@@ -1,12 +1,18 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { CheckCircle2, Plus, Send, ShoppingCart, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 
+import {
+  IconApproved,
+  IconPlus,
+  IconProcure,
+  IconSend,
+  IconTrash,
+} from "@/components/icons";
 import { useToast } from "@/components/toast";
 import {
   Button,
@@ -136,13 +142,10 @@ export function PurchasePage() {
               transition={{ type: "spring", stiffness: 240, damping: 14, delay: 0.1 }}
               className="mx-auto grid size-20 place-items-center rounded-full bg-ember-50 text-ember-600"
             >
-              <CheckCircle2 className="size-11" />
+              <IconApproved className="size-11" />
             </motion.span>
-            <h2 className="mt-5 text-xl font-extrabold text-ink-900">تم تقديم طلب الشراء</h2>
-            <p className="mt-2 text-sm leading-relaxed text-ink-400">
-              رقم الطلب <span className="tabular font-bold text-ink-800">#{submitted.id}</span> —
-              سيتولّى قائد اللوازم مراجعته وتدبير المطلوب.
-            </p>
+            <h2 className="mt-5 text-xl font-extrabold text-ink-900">تم تقديم الطلب</h2>
+            <p className="tabular mt-2 text-sm font-bold text-ink-800">#{submitted.id}</p>
             <div className="mt-6 flex flex-wrap justify-center gap-2">
               <Link href={`/requests/${submitted.id}`}>
                 <Button>عرض الطلب</Button>
@@ -172,15 +175,13 @@ export function PurchasePage() {
     <div>
       <PageHeader
         title="طلب شراء"
-        description="للأغراض التي نفدت كميتها بالكامل أو غير المُدرجة في مخزون المقر"
       />
 
       <form onSubmit={submit} className="grid gap-5 lg:grid-cols-[1fr_20rem]">
         <Card>
           <CardHeader
             title="الأغراض المطلوب شراؤها"
-            subtitle="اختر غرضًا نفد من المخزون، أو اكتب اسم غرض جديد"
-            icon={<ShoppingCart className="size-5" />}
+            icon={<IconProcure className="size-5" />}
           />
 
           <ul className="divide-y divide-sand-200">
@@ -245,7 +246,7 @@ export function PurchasePage() {
                           aria-label="حذف السطر"
                           className="grid size-11 place-items-center rounded-xl text-ink-400 transition-colors hover:bg-crimson-50 hover:text-crimson-600 disabled:opacity-30"
                         >
-                          <Trash2 className="size-4" />
+                          <IconTrash className="size-4" />
                         </button>
                       </div>
                     </div>
@@ -282,7 +283,7 @@ export function PurchasePage() {
               size="sm"
               onClick={() => setLines((current) => [...current, newLine()])}
             >
-              <Plus className="size-4" />
+              <IconPlus className="size-4" />
               إضافة غرض آخر
             </Button>
           </div>
@@ -317,7 +318,7 @@ export function PurchasePage() {
             </dl>
 
             <Button type="submit" size="lg" className="mt-5 w-full" loading={submitting}>
-              <Send className="size-4" />
+              <IconSend className="size-4" />
               تقديم طلب الشراء
             </Button>
           </Card>

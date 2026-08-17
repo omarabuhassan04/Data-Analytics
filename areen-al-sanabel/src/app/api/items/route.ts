@@ -5,6 +5,7 @@ import { logActivity } from "@/lib/activity";
 import { conflict, notFound, readJson, requirePermission, withApi } from "@/lib/api";
 import { stockLevel } from "@/lib/domain";
 import { prisma } from "@/lib/prisma";
+import { applyMovement } from "@/lib/stock";
 import { itemCreateSchema } from "@/lib/validation";
 
 export const GET = withApi(async (request: Request) => {
@@ -32,6 +33,7 @@ export const GET = withApi(async (request: Request) => {
     name: item.name,
     unit: item.unit,
     quantity: item.quantity,
+    quarantine: item.quarantine,
     threshold: item.threshold,
     notes: item.notes,
     photoUrl: item.photoUrl,
@@ -58,26 +60,48 @@ export const POST = withApi(async (request: Request) => {
   });
   if (duplicate) throw conflict("يوجد غرض بهذا الاسم في التصنيف نفسه");
 
-  const item = await prisma.item.create({
-    data: {
-      name: body.name,
-      unit: body.unit,
-      quantity: body.quantity,
-      threshold: body.threshold,
-      notes: body.notes,
-      photoUrl: body.photoUrl,
-      categoryId: body.categoryId,
-    },
-    include: { category: { select: { id: true, name: true, icon: true } } },
-  });
+  /*
+    الغرض يُنشأ برصيد صفر ثم يُقيَّد رصيده الافتتاحي حركةً في الدفتر.
+    لو كُتبت الكمية مباشرةً في صف الغرض لظهر الغرض فورًا كفرق في المطابقة،
+    لأن مجموع دفتره سيكون صفرًا ورصيده ليس صفرًا.
+  */
+  const item = await prisma.$transaction(async (tx) => {
+    const created = await tx.item.create({
+      data: {
+        name: body.name,
+        unit: body.unit,
+        quantity: 0,
+        threshold: body.threshold,
+        notes: body.notes,
+        photoUrl: body.photoUrl,
+        categoryId: body.categoryId,
+      },
+    });
 
-  await logActivity(prisma, {
-    actorId: user.id,
-    actorName: user.fullName,
-    action: "ITEM_CREATE",
-    entity: "Item",
-    entityId: item.id,
-    summary: `أضاف «${item.name}» إلى تصنيف ${category.name} بكمية ${item.quantity} ${item.unit}`,
+    if (body.quantity > 0) {
+      await applyMovement(tx, {
+        itemId: created.id,
+        reason: "OPENING",
+        units: body.quantity,
+        availableDelta: body.quantity,
+        actor: { id: user.id, fullName: user.fullName },
+        note: "رصيد افتتاحي عند إضافة الغرض",
+      });
+    }
+
+    await logActivity(tx, {
+      actorId: user.id,
+      actorName: user.fullName,
+      action: "ITEM_CREATE",
+      entity: "Item",
+      entityId: created.id,
+      summary: `أضاف «${created.name}» إلى تصنيف ${category.name} بكمية ${body.quantity} ${created.unit}`,
+    });
+
+    return tx.item.findUniqueOrThrow({
+      where: { id: created.id },
+      include: { category: { select: { id: true, name: true, icon: true } } },
+    });
   });
 
   return NextResponse.json({ item }, { status: 201 });

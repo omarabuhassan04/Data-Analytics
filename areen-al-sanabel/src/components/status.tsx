@@ -1,24 +1,27 @@
-import {
-  CheckCircle2,
-  CircleDashed,
-  CircleSlash,
-  Eye,
-  PackageMinus,
-  PackageX,
-  ShoppingCart,
-  Sparkles,
-  Tent,
-  XCircle,
-} from "lucide-react";
 import type { ReactNode } from "react";
 
+import {
+  IconApproved,
+  IconCairn,
+  IconCancelled,
+  IconLantern,
+  IconLens,
+  IconProcure,
+  IconRejected,
+  IconRestock,
+  IconReturn,
+  IconTent,
+} from "@/components/icons";
 import { Badge } from "@/components/ui";
 import {
   REQUEST_STATUS_LABELS,
   REQUEST_TYPE_LABELS,
   ROLE_LABELS,
+  SETTLEMENT_LABELS,
   STOCK_LEVEL_LABELS,
+  settlementState,
   stockLevel,
+  type LineLedger,
   type RequestStatus,
   type RequestType,
   type Role,
@@ -26,12 +29,14 @@ import {
 
 type Tone = "neutral" | "amber" | "green" | "red" | "blue" | "gold";
 
+const ICON = "size-3.5";
+
 const STATUS_STYLE: Record<RequestStatus, { tone: Tone; icon: ReactNode }> = {
-  PENDING: { tone: "amber", icon: <CircleDashed className="size-3.5" /> },
-  UNDER_REVIEW: { tone: "blue", icon: <Eye className="size-3.5" /> },
-  APPROVED: { tone: "green", icon: <CheckCircle2 className="size-3.5" /> },
-  REJECTED: { tone: "red", icon: <XCircle className="size-3.5" /> },
-  CANCELLED: { tone: "neutral", icon: <CircleSlash className="size-3.5" /> },
+  PENDING: { tone: "amber", icon: <IconCairn className={ICON} /> },
+  UNDER_REVIEW: { tone: "blue", icon: <IconLens className={ICON} /> },
+  APPROVED: { tone: "green", icon: <IconApproved className={ICON} /> },
+  REJECTED: { tone: "red", icon: <IconRejected className={ICON} /> },
+  CANCELLED: { tone: "neutral", icon: <IconCancelled className={ICON} /> },
 };
 
 export function StatusBadge({ status }: { status: string }) {
@@ -46,9 +51,9 @@ export function StatusBadge({ status }: { status: string }) {
 }
 
 const TYPE_STYLE: Record<RequestType, { tone: Tone; icon: ReactNode }> = {
-  EQUIPMENT: { tone: "green", icon: <Tent className="size-3.5" /> },
-  ADDITIONAL: { tone: "gold", icon: <Sparkles className="size-3.5" /> },
-  PURCHASE: { tone: "amber", icon: <ShoppingCart className="size-3.5" /> },
+  EQUIPMENT: { tone: "green", icon: <IconTent className={ICON} /> },
+  ADDITIONAL: { tone: "gold", icon: <IconRestock className={ICON} /> },
+  PURCHASE: { tone: "amber", icon: <IconProcure className={ICON} /> },
 };
 
 export function TypeBadge({ type }: { type: string }) {
@@ -70,23 +75,47 @@ export function StockBadge({
   threshold: number;
 }) {
   const level = stockLevel(quantity, threshold);
-  if (level === "OUT") {
+  if (level === "OUT") return <Badge tone="red">{STOCK_LEVEL_LABELS.OUT}</Badge>;
+  if (level === "LOW") return <Badge tone="amber">{STOCK_LEVEL_LABELS.LOW}</Badge>;
+  return <Badge tone="green">{STOCK_LEVEL_LABELS.OK}</Badge>;
+}
+
+/** حالة تسوية سطر عهدة — رجع كليًا أم جزئيًا أم لم يرجع */
+export function SettlementBadge({ line }: { line: LineLedger }) {
+  const state = settlementState(line);
+  if (state === "FULL") {
     return (
-      <Badge tone="red">
-        <PackageX className="size-3.5" />
-        {STOCK_LEVEL_LABELS.OUT}
+      <Badge tone="green">
+        <IconApproved className={ICON} />
+        {SETTLEMENT_LABELS.FULL}
       </Badge>
     );
   }
-  if (level === "LOW") {
+  if (state === "PARTIAL") {
     return (
       <Badge tone="amber">
-        <PackageMinus className="size-3.5" />
-        {STOCK_LEVEL_LABELS.LOW}
+        <IconReturn className={ICON} />
+        {SETTLEMENT_LABELS.PARTIAL}
       </Badge>
     );
   }
-  return <Badge tone="green">{STOCK_LEVEL_LABELS.OK}</Badge>;
+  return (
+    <Badge tone="neutral">
+      <IconCairn className={ICON} />
+      {SETTLEMENT_LABELS.NONE}
+    </Badge>
+  );
+}
+
+/** وحدات محتجزة بفحص الجودة */
+export function QuarantineBadge({ units, unit }: { units: number; unit: string }) {
+  if (units <= 0) return null;
+  return (
+    <Badge tone="blue">
+      <IconLantern className={ICON} />
+      {units} {unit} بالفحص
+    </Badge>
+  );
 }
 
 const ROLE_TONE: Record<Role, Tone> = {

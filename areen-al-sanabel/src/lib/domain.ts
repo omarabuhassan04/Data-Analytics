@@ -25,14 +25,6 @@ export const ROLE_LABELS: Record<Role, string> = {
   SCOUTS_LEADER: "قائد الكشافين",
 };
 
-export const ROLE_DESCRIPTIONS: Record<Role, string> = {
-  SUPPLIES_LEADER: "صلاحيات كاملة: إدارة المخزون والحسابات والبتّ في جميع الطلبات",
-  TEAM_LEADER: "طلب العهدة والشراء من مخزون المقر ومتابعة طلبات فرقته",
-  GROUP_LEADER: "اطّلاع كامل على المخزون وجميع الطلبات دون تعديل",
-  DEPUTY_GROUP_LEADER: "اطّلاع كامل على المخزون وجميع الطلبات دون تعديل",
-  SCOUTS_LEADER: "اطّلاع كامل، مع إضافة ملاحظات على طلبات العهدة",
-};
-
 export function isRole(value: unknown): value is Role {
   return typeof value === "string" && (ROLES as readonly string[]).includes(value);
 }
@@ -54,6 +46,8 @@ export const PERMISSIONS = [
   "requests:decide",
   /** إلغاء طلبه ما دام قيد الانتظار */
   "requests:cancel:own",
+  /** استلام المرتجعات والبتّ في فحص الجودة */
+  "inventory:returns",
   /** إضافة ملاحظة على طلب */
   "requests:note",
   /** إنشاء وإدارة حسابات المستخدمين */
@@ -73,6 +67,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
   SUPPLIES_LEADER: [
     "inventory:read",
     "inventory:write",
+    "inventory:returns",
     "requests:read:all",
     "requests:decide",
     "requests:note",
@@ -128,12 +123,6 @@ export const REQUEST_TYPE_LABELS: Record<RequestType, string> = {
   PURCHASE: "طلب شراء",
 };
 
-export const REQUEST_TYPE_DESCRIPTIONS: Record<RequestType, string> = {
-  EQUIPMENT: "استلام أغراض متوفّرة حاليًا في مخزون المقر",
-  ADDITIONAL: "الحاجة إلى كمية تفوق المتوفّر من غرض موجود في المخزون",
-  PURCHASE: "شراء غرض نفدت كميته بالكامل أو غير مُدرج في المخزون",
-};
-
 /* ------------------------------------------------------------- حالات الطلب */
 
 export const REQUEST_STATUSES = [
@@ -177,6 +166,107 @@ export const ALLOWED_TRANSITIONS: Record<RequestStatus, readonly RequestStatus[]
 export function canTransition(from: RequestStatus, to: RequestStatus): boolean {
   return ALLOWED_TRANSITIONS[from].includes(to);
 }
+
+/* --------------------------------------------------------- المرتجعات والجودة */
+
+/** حالة الوحدة الراجعة كما يسجّلها قائد اللوازم عند الاستلام */
+export const RETURN_CONDITIONS = ["GOOD", "DAMAGED", "LOST"] as const;
+export type ReturnCondition = (typeof RETURN_CONDITIONS)[number];
+
+export const RETURN_CONDITION_LABELS: Record<ReturnCondition, string> = {
+  GOOD: "سليم",
+  DAMAGED: "يحتاج فحصًا",
+  LOST: "مفقود",
+};
+
+/** مآل الوحدة بعد فحص الجودة */
+export const QC_OUTCOMES = ["RELEASE", "WRITE_OFF"] as const;
+export type QcOutcome = (typeof QC_OUTCOMES)[number];
+
+export const QC_OUTCOME_LABELS: Record<QcOutcome, string> = {
+  RELEASE: "صالح — يعود للمخزون",
+  WRITE_OFF: "تالف — يُشطب",
+};
+
+/* ------------------------------------------------------ دفتر حركة المخزون */
+
+export const MOVEMENT_REASONS = [
+  "OPENING",
+  "RECEIVE",
+  "ADJUST",
+  "RESERVE",
+  "RELEASE",
+  "RETURN",
+  "QC_HOLD",
+  "QC_RELEASE",
+  "QC_WRITE_OFF",
+  "WRITE_OFF",
+] as const;
+
+export type MovementReason = (typeof MOVEMENT_REASONS)[number];
+
+export const MOVEMENT_REASON_LABELS: Record<MovementReason, string> = {
+  OPENING: "رصيد افتتاحي",
+  RECEIVE: "توريد",
+  ADJUST: "تعديل جرد",
+  RESERVE: "حجز لطلب",
+  RELEASE: "فكّ حجز",
+  RETURN: "إرجاع للمخزون",
+  QC_HOLD: "احتجاز للفحص",
+  QC_RELEASE: "إنهاء فحص — صالح",
+  QC_WRITE_OFF: "إنهاء فحص — شطب",
+  WRITE_OFF: "شطب مفقود",
+};
+
+/* ---------------------------------------------------- حساب الكمية المعلّقة */
+
+/**
+ * أعمدة السطر التي تدخل في معادلة الرصيد.
+ * نوع مفتوح حتى يعمل مع سجل Prisma ومع الـ DTO في الواجهة على حدّ سواء.
+ */
+export type LineLedger = {
+  deducted: number;
+  released: number;
+  returned: number;
+  quarantined: number;
+  writtenOff: number;
+};
+
+/**
+ * الكمية التي ما زالت في يد الفرقة ولم تُسوَّ بعد.
+ *
+ * هذه هي المعادلة الوحيدة المعتمدة في النظام — الخادم والواجهة يستدعيانها
+ * كلاهما، فلا يمكن أن يختلف رقمٌ معروض عن رقمٍ محسوب.
+ */
+export function lineOutstanding(line: LineLedger): number {
+  return (
+    line.deducted - line.released - line.returned - line.quarantined - line.writtenOff
+  );
+}
+
+/** إجمالي ما سُوِّي من السطر (رجع أو احتُجز أو شُطب) */
+export function lineSettled(line: LineLedger): number {
+  return line.returned + line.quarantined + line.writtenOff;
+}
+
+/** هل انتهت تسوية السطر بالكامل؟ */
+export function isLineSettled(line: LineLedger): boolean {
+  return lineOutstanding(line) <= 0;
+}
+
+/** حالة تسوية السطر لعرضها في الواجهة */
+export type SettlementState = "NONE" | "PARTIAL" | "FULL";
+
+export function settlementState(line: LineLedger): SettlementState {
+  if (lineOutstanding(line) <= 0) return "FULL";
+  return lineSettled(line) > 0 ? "PARTIAL" : "NONE";
+}
+
+export const SETTLEMENT_LABELS: Record<SettlementState, string> = {
+  NONE: "لم يرجع",
+  PARTIAL: "رجع جزئيًا",
+  FULL: "مكتمل",
+};
 
 /* ----------------------------------------------------------------- المخزون */
 

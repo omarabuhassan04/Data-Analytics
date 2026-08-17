@@ -101,7 +101,7 @@ controls, it is never the security boundary.
 
 | Type         | Arabic            | When                                                | Stock effect        |
 | ------------ | ----------------- | --------------------------------------------------- | ------------------- |
-| `EQUIPMENT`  | طلب عهدة          | Items available in stock now                        | Deducted on submit  |
+| `EQUIPMENT`  | طلب عهدة          | Items available in stock now                        | Deducted on submit, returned on handback |
 | `ADDITIONAL` | طلب كمية إضافية   | Item exists and isn't depleted, but stock is short   | None                |
 | `PURCHASE`   | طلب شراء          | Item is fully out of stock, or not in inventory      | None                |
 
@@ -112,6 +112,85 @@ with a message steering them back to طلب عهدة.
 Status lifecycle: `PENDING` → `UNDER_REVIEW` (optional) → `APPROVED` / `REJECTED`, plus
 `CANCELLED` by the requester. Transitions are validated against `ALLOWED_TRANSITIONS`, so a
 decided request cannot be re-decided (returns `409`).
+
+---
+
+## Returned-order tracking
+
+An عهدة request lends equipment out; the tents have to come back. Stock leaves the shelf when the
+request is submitted, and until the units are accounted for they are **outstanding** — physically
+with the team, owned by the ledger.
+
+### The three paths a returned unit can take
+
+| Recorded as       | Effect on stock                        | Meaning                          |
+| ----------------- | -------------------------------------- | -------------------------------- |
+| `GOOD` — سليم     | back into available stock              | ready to lend again              |
+| `DAMAGED` — للفحص | into **quarantine**, *not* available    | held for quality control         |
+| `LOST` — مفقود    | neither balance changes                 | it left and will not return      |
+
+Quarantined units are physically at the HQ but excluded from the available count, so a team leader
+never reserves a tent that is sitting in the repair pile. Quality control then resolves each held
+unit to `RELEASE` (back to available) or `WRITE_OFF` (gone).
+
+`LOST` deliberately moves no balance: the unit was already deducted at reservation time. Its ledger
+row exists to record accountability, not a quantity change — which is why `applyMovement` skips the
+item update entirely for it rather than writing an empty one.
+
+### One equation, one place
+
+Outstanding custody is never stored. It is derived, by `lineOutstanding()` in
+[`domain.ts`](src/lib/domain.ts):
+
+```
+outstanding = deducted − released − returned − quarantined − writtenOff
+```
+
+Server and browser both import that function, so a number shown on screen cannot drift from the
+number the server enforces. The counters are cumulative and monotonic; a QC release moves a unit
+from `quarantined` to `returned`, which leaves `outstanding` unchanged — correctly, since the unit
+was already returned when it was first received.
+
+All arithmetic is in whole units (`Int`), so rounding error is not merely unlikely, it is
+unrepresentable.
+
+### The ledger is the source of truth
+
+Every stock change in the application goes through a single primitive — `applyMovement()` in
+[`stock.ts`](src/lib/stock.ts) — which writes a `StockMovement` row carrying the signed effect on
+both balances plus a post-movement snapshot. There is no `item.update` touching `quantity` or
+`quarantine` anywhere else, including manual stock adjustments and item creation, which are recorded
+as `ADJUST` and `OPENING` movements.
+
+That makes reconciliation true by construction rather than by convention:
+
+```
+SUM(availableDelta)  = Item.quantity
+SUM(quarantineDelta) = Item.quarantine
+```
+
+`GET /api/inventory/reconcile` checks that for every item and **reports** drift instead of silently
+correcting it — a self-healing balance hides the bug that caused it. The ledger page shows the
+result, and any drifted item, with its stored and computed balances side by side.
+
+Writes are atomic: the guard is a conditional `updateMany` that only succeeds while the balance is
+still sufficient, so concurrent returns cannot push a balance negative or double-restore a line.
+Reads that follow a write are invalidated together by `revalidateStock()`, so the dashboard badge,
+inventory counts, request detail, ledger and reconciliation all move in the same tick.
+
+### Endpoints
+
+| Method + path                          | Does                                        |
+| -------------------------------------- | ------------------------------------------- |
+| `POST /api/requests/[id]/return`       | Receive a return, line by line              |
+| `GET  /api/inventory/qc`               | Units currently held for quality control    |
+| `POST /api/inventory/qc/[lineId]`      | Release or write off held units             |
+| `GET  /api/inventory/movements`        | The movement ledger, filterable by reason   |
+| `GET  /api/inventory/reconcile`        | Balance-vs-ledger proof, with any drift     |
+
+Receiving returns and resolving QC require the `inventory:returns` permission (قائد اللوازم).
+Returns are accepted only on an `APPROVED` `EQUIPMENT` request — before handover there is nothing in
+the team's hands, and a rejection or cancellation releases the reservation instead.
 
 ---
 
@@ -142,6 +221,9 @@ decided request cannot be re-decided (returns `409`).
 | [`src/lib/domain.ts`](src/lib/domain.ts)                   | Roles, permissions, statuses, Arabic labels |
 | [`src/lib/api.ts`](src/lib/api.ts)                         | Permission guards + error → Arabic JSON  |
 | [`src/lib/request-service.ts`](src/lib/request-service.ts) | Transactional stock math and transitions |
+| [`src/lib/stock.ts`](src/lib/stock.ts)                     | Ledger primitive + reconciliation        |
+| [`src/lib/return-service.ts`](src/lib/return-service.ts)   | Return intake and quality-control        |
+| [`src/components/icons.tsx`](src/components/icons.tsx)     | The purpose-drawn scout icon set         |
 | [`prisma/schema.prisma`](prisma/schema.prisma)             | Data model                               |
 | [`prisma/seed.ts`](prisma/seed.ts)                         | Accounts, categories, 47 items, samples  |
 
@@ -163,109 +245,51 @@ generated Prisma enums — nothing else in the codebase depends on them being st
 
 ---
 
-## The login page — "campfire login experience"
+## The login page
 
-The login screen is deliberately styled apart from the rest of the app: a dark pine-forest camp at
-night that lights up when the user strikes a piece of char-wood into the fire. The card is a
-weathered wood panel hung from carabiners, bound in rope with tied knots at the corners, topped by
-an embroidered header band with a glowing brass compass, with an engraved camp map faint in the
-grain, leather-pouch input fields, and a brass woggle crest on the "ابدأ رحلتك" button. Everything
-past that door — the daily working screens — stays on the light, fast, scannable theme.
-
-The whole scene is drawn in code — **no image assets**:
-
-| File | Holds |
-| --- | --- |
-| [`campfire-scene.tsx`](src/components/campfire-scene.tsx) | Sky, stars, pine ridges, fire, embers, smoke, spark burst, the striking hand |
-| [`scout-ornaments.tsx`](src/components/scout-ornaments.tsx) | Compass, rope knots, carabiners, merit badges, woggle crest, camp map |
-| [`ignition.tsx`](src/components/ignition.tsx) | The lit/unlit state shared by scene and card |
-
-Wood grain, canvas weave, leather and fabric come from SVG `feTurbulence` filters; flames are
-animated SVG paths; stars, embers, smoke and sparks are CSS-animated.
+The login screen carries the same identity as the rest of the app rather than a separate theme: the
+group badge, the name, and two fields on a single panel over the topographic grid. It is the first
+screen a tired volunteer sees on a phone at the start of a camp, so it holds nothing that is not
+needed to sign in.
 
 ### Deliberate decisions
 
-- **Ignition never gates login.** The form is fully usable from first paint. Any click or keypress
-  lights the fire, and it auto-lights after 2.6s if the user does nothing — a login screen that
-  required a gesture would lock out keyboard and screen-reader users.
-- **No `autoFocus` on the first field.** Autofocus fires `:focus-within` instantly, which
-  straightens the card and means the 3/4 perspective would never actually be seen. It also moves
-  focus without the user asking.
-- **The 3/4 tilt straightens on hover or focus**, and is dropped entirely under 640px or
-  `prefers-reduced-motion` — a permanently skewed form is harder to read and type into.
-- **The three merit badges do real work or none at all.** In development they fill a demo account
-  for each permission tier (team leader / supplies leader / read-only), announced properly via
-  `aria-label`. In production they render as plain decoration, because a login page does not need
-  extra buttons and a button that does nothing is worse than no button.
-- **Fixed-seed PRNG, never `Math.random()`**, for star/ember/spark positions — the component also
-  renders on the server, and unseeded randomness causes hydration mismatches. Trig results are
-  rounded to 3 decimals for the same reason (`Math.sin`/`cos` differ in the last float digit
-  between Node and the browser).
-- **`prefers-reduced-motion`** removes embers, smoke, sparks and the hand, and starts the fire
-  already lit and steady.
-- **Every text element passes WCAG AA** on the dark panel — lowest is the header subtitle at
-  6.3:1, the button label sits at 10.8:1.
+- **No `autoFocus` on the first field.** Moving focus without the user asking disorients screen
+  readers and hijacks the scroll position on mobile.
+- **Demo accounts are server-gated.** The panel only renders when `SHOW_DEMO_ACCOUNTS=true`, and the
+  list is built in the server component — a constant written in a client component ships to the
+  browser and shows up in page source whether or not it is rendered.
 
-## The kinetic dashboard, and the design-preview page
+## The interface
 
-Two separate things, deliberately:
+**One aesthetic, applied to every page.** The look is field equipment rather than campfire scenery:
+flat surfaces, hairline borders, a single warm accent (brass) reserved for actions, and a faint
+topographic grid behind the page. Motion is limited to element entry and the loading indicator —
+there is no ambient animation.
 
-**`/` — the real dashboard**, restyled with the kinetic scout aesthetic: a rotating compass-and-gear
-mechanism in a braided rope frame with metal clasps, LED-edged navigation with motion trails,
-edge-lit holographic stat panels, fiber-optic progress straps, and a living forest backdrop with a
-deer and an owl crossing the tree line through a field of drifting sparks and falling leaves.
-**Every number on it comes from the database** — request status counts, open-request flow, stock
-readiness, low-stock alerts, recent requests, activity log. Nothing is invented.
+All colour lives in `@theme` in [`globals.css`](src/app/globals.css). The `ink-*` and `sand-*` scales
+keep their meaning — `ink` is text-contrast strength (900 strongest), `sand` is surface/border depth
+(50 deepest) — so the whole identity can be retuned from that one block. Components carry no
+hex literals; the sticky header's translucent surface is the `--surface-veil` token.
 
-**`/concept` — a design preview** that realizes the visual concept literally: a walking scout
-character ringed by an orbiting badge nebula with drifting knot and compass models, badge and
-adventure progress, and an interactive camp map on a parchment scroll that unfurls, with pulsing
-pins, flowing light trails, and working zoom and rotate. It carries a permanent banner saying the
-content is sample data, and it is not linked from the app navigation.
+Two traps worth remembering on a dark palette:
 
-They are separate on purpose: the concept's sections (badges, adventures, a scout avatar, a camp
-map) have no counterpart in an inventory system, and putting invented progress bars in front of a
-team leader checking whether there are enough tents would be worse than useless.
-
-### Scope of the kinetic skin
-
-The scout theme is applied to **every page** — dashboard, inventory, cart, purchase, requests,
-request detail, inventory management, accounts, and activity all share the same dark surfaces,
-forest backdrop and LED-edged navigation.
-
-It is implemented as a **palette inversion rather than per-page rewrites**. The `ink-*` and `sand-*`
-scales keep their meaning — `ink` is text-contrast strength (900 strongest), `sand` is
-surface/border depth (50 deepest) — and only their values flipped in `@theme`. That kept roughly 250
-existing utility classes working untouched and means the whole theme can be reverted from one block
-in [`globals.css`](src/app/globals.css).
-
-Two traps that came out of the flip and are worth remembering if you touch it:
-
-- Overlays written as `bg-ink-900/45` became **light** once `ink-900` inverted. Scrim colours must
-  be literal (`bg-black/65`), not palette-derived.
-- `bg-white` is Tailwind's built-in and does not invert, so every light surface had to move to
+- Scrim colours must be literal (`bg-black/70`), not palette-derived — `bg-ink-900/45` reads *light*
+  when `ink-900` is a near-white.
+- `bg-white` is Tailwind's built-in and does not follow the palette, so light surfaces use
   `bg-sand-100` / `bg-sand-50` explicitly.
 
-Contrast was re-audited programmatically after the flip — every text node on every page walked, its
-effective background resolved up the tree, and its ratio checked against WCAG AA (3:1 for large
-text). **Zero failures** across `/inventory`, `/requests`, `/requests/[id]`, `/manage/items`
-(including an open modal), `/manage/users`, `/purchase`, `/cart` and `/activity`.
+### Icons
 
-| File | Holds |
-| --- | --- |
-| [`kinetic/forest-backdrop.tsx`](src/components/kinetic/forest-backdrop.tsx) | Three depth layers, wildlife, leaves, light motes |
-| [`kinetic/mechanism.tsx`](src/components/kinetic/mechanism.tsx) | Interlocking gears and the rotating compass |
-| [`kinetic/parts.tsx`](src/components/kinetic/parts.tsx) | Fiber progress, holo panels, edge stats, clasps, rope frame |
-| [`concept/journey.tsx`](src/components/concept/journey.tsx) | Scout character, badge nebula, floating models |
-| [`concept/camp-map.tsx`](src/components/concept/camp-map.tsx) | Parchment map, pins, trails, zoom/rotate |
+[`icons.tsx`](src/components/icons.tsx) is a purpose-drawn set in scout vocabulary — compass,
+footlocker, knapsack, signpost, lantern, logbook, tent, cairn, rope-return — replacing the generic
+icon library entirely (`lucide-react` is no longer imported anywhere in `src/`). One shared `<Icon>`
+wrapper fixes the rules that make them read as a family: a 24×24 box with geometry inset to 2–22,
+1.5 stroke, round caps and joins, and `currentColor` so every icon inherits its text colour. They
+are `aria-hidden` by default and take a `label` only when an icon is the sole identifier.
 
-Gear teeth, compass ticks and orbit positions are all generated from trigonometry **rounded to 3
-decimals**, and particle placement uses a **fixed-seed PRNG** — both because these components render
-on the server too, and raw `Math.sin`/`Math.random` produce hydration mismatches.
-
-`prefers-reduced-motion` stops every gear, orbit, walk cycle, rope tension and map trail, and removes
-wildlife, leaves, motes and pin halos — the layout stays complete and readable, just still. All text
-on both surfaces was contrast-checked against WCAG AA (dashboard lowest 9.8:1, concept lowest 7.1:1).
+`prefers-reduced-motion` reduces every animation and transition to nil; the layout stays complete
+and readable.
 
 ## The logo
 

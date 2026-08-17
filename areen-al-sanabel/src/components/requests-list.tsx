@@ -1,21 +1,21 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  CalendarDays,
-  ChevronDown,
-  CircleSlash,
-  Eye,
-  ExternalLink,
-  ListChecks,
-  MessageSquarePlus,
-  ThumbsDown,
-  ThumbsUp,
-} from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import useSWR from "swr";
 
+import {
+  IconApproved,
+  IconCalendar,
+  IconCancelled,
+  IconChevron,
+  IconExternal,
+  IconLens,
+  IconNote,
+  IconRejected,
+  IconSignpost,
+} from "@/components/icons";
 import { useSessionUser } from "@/components/session";
 import { StatusBadge, TypeBadge } from "@/components/status";
 import { useToast } from "@/components/toast";
@@ -165,13 +165,8 @@ export function RequestsList({
       {data && requests.length === 0 && (
         <Card>
           <EmptyState
-            icon={<ListChecks className="size-6" />}
+            icon={<IconSignpost className="size-6" />}
             title="لا توجد طلبات مطابقة"
-            description={
-              scope === "mine"
-                ? "لم تقدّم أي طلب بهذه المواصفات بعد."
-                : "لم تقدّم أي فرقة طلبًا بهذه المواصفات."
-            }
           />
         </Card>
       )}
@@ -208,7 +203,7 @@ export function RequestsList({
                   <span className="flex shrink-0 flex-wrap items-center gap-1.5">
                     <TypeBadge type={request.type} />
                     <StatusBadge status={request.status} />
-                    <ChevronDown
+                    <IconChevron
                       className={cn(
                         "size-4 text-ink-400 transition-transform",
                         open && "rotate-180",
@@ -234,7 +229,7 @@ export function RequestsList({
                             value={
                               request.neededOn ? formatDate(request.neededOn) : "غير محدّد"
                             }
-                            icon={<CalendarDays className="size-3.5" />}
+                            icon={<IconCalendar className="size-3.5" />}
                           />
                           <Detail
                             label="القرار"
@@ -290,7 +285,7 @@ export function RequestsList({
                         <div className="flex flex-wrap items-center gap-2">
                           <Link href={`/requests/${request.id}`}>
                             <Button variant="secondary" size="sm">
-                              <ExternalLink className="size-4" />
+                              <IconExternal className="size-4" />
                               التفاصيل الكاملة
                               {(request._count?.notes ?? 0) > 0 && (
                                 <span className="tabular rounded-full bg-sand-200 px-1.5 text-xs">
@@ -307,7 +302,7 @@ export function RequestsList({
                                 size="sm"
                                 onClick={() => setDecision({ request, status: "APPROVED" })}
                               >
-                                <ThumbsUp className="size-4" />
+                                <IconApproved className="size-4" />
                                 قبول
                               </Button>
                               <Button
@@ -315,7 +310,7 @@ export function RequestsList({
                                 size="sm"
                                 onClick={() => setDecision({ request, status: "REJECTED" })}
                               >
-                                <ThumbsDown className="size-4" />
+                                <IconRejected className="size-4" />
                                 رفض
                               </Button>
                               {request.status === "PENDING" && (
@@ -326,7 +321,7 @@ export function RequestsList({
                                     setDecision({ request, status: "UNDER_REVIEW" })
                                   }
                                 >
-                                  <Eye className="size-4" />
+                                  <IconLens className="size-4" />
                                   قيد المراجعة
                                 </Button>
                               )}
@@ -340,7 +335,7 @@ export function RequestsList({
                                 size="sm"
                                 onClick={() => setNoteTarget(request)}
                               >
-                                <MessageSquarePlus className="size-4" />
+                                <IconNote className="size-4" />
                                 إضافة ملاحظة
                               </Button>
                             )}
@@ -352,7 +347,7 @@ export function RequestsList({
                               onClick={() => cancel(request)}
                               className="text-crimson-600 hover:bg-crimson-50"
                             >
-                              <CircleSlash className="size-4" />
+                              <IconCancelled className="size-4" />
                               إلغاء الطلب
                             </Button>
                           )}
@@ -525,7 +520,6 @@ function NoteModal({
       open={Boolean(request)}
       onClose={onClose}
       title={`ملاحظة على الطلب #${request?.id ?? ""}`}
-      description="تُسجَّل الملاحظة باسمك وتظهر لجميع المطّلعين على الطلب."
     >
       <form onSubmit={submit} className="space-y-4">
         <Field label="نص الملاحظة" required>

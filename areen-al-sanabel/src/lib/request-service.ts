@@ -9,12 +9,14 @@ import type { CurrentUser } from "@/lib/auth";
 import {
   canTransition,
   isOpenStatus,
+  lineOutstanding,
   REQUEST_TYPE_LABELS,
   REQUEST_STATUS_LABELS,
   type RequestStatus,
   type RequestType,
 } from "@/lib/domain";
 import { prisma } from "@/lib/prisma";
+import { applyMovement, type MovementActor } from "@/lib/stock";
 import type { decisionSchema, requestCreateSchema } from "@/lib/validation";
 
 type Tx = Prisma.TransactionClient;
@@ -27,6 +29,23 @@ type NormalizedLine = {
   quantity: number;
   note: string | null;
 };
+
+/** الأعمدة اللازمة لحساب الكمية المعلّقة لسطر */
+const LEDGER_SELECT = {
+  id: true,
+  itemId: true,
+  itemName: true,
+  unit: true,
+  deducted: true,
+  released: true,
+  returned: true,
+  quarantined: true,
+  writtenOff: true,
+} as const;
+
+function actorOf(user: CurrentUser): MovementActor {
+  return { id: user.id, fullName: user.fullName };
+}
 
 /**
  * يدمج الأسطر المكرّرة لنفس الغرض في سطر واحد.
@@ -56,23 +75,50 @@ function mergeLines(lines: CreateInput["lines"]): NormalizedLine[] {
 }
 
 /**
- * يُعيد الكميات المخصومة إلى المخزون ويصفّر حقل `deducted`.
- * يُستدعى عند رفض الطلب أو إلغائه.
+ * يفكّ حجز ما لم يُسلَّم بعد ويعيده إلى المخزون المتاح.
+ * يُستدعى عند رفض الطلب أو إلغائه — أي قبل أن يخرج العتاد من المقر.
+ *
+ * يعتمد على الكمية المعلّقة لا على `deducted` الخام، فلو رجع شيء من هذا
+ * السطر سابقًا لأي سبب لا يُعاد إلى المخزون مرتين.
  */
-async function restoreStock(tx: Tx, requestId: number): Promise<void> {
+async function releaseReservations(
+  tx: Tx,
+  requestId: number,
+  actor: MovementActor,
+  note: string,
+): Promise<number> {
   const lines = await tx.requestLine.findMany({
-    where: { requestId, deducted: { gt: 0 }, itemId: { not: null } },
-    select: { id: true, itemId: true, deducted: true },
+    where: { requestId, itemId: { not: null } },
+    select: LEDGER_SELECT,
   });
+
+  let releasedTotal = 0;
 
   for (const line of lines) {
     if (!line.itemId) continue;
-    await tx.item.update({
-      where: { id: line.itemId },
-      data: { quantity: { increment: line.deducted } },
+    const pending = lineOutstanding(line);
+    if (pending <= 0) continue;
+
+    await applyMovement(tx, {
+      itemId: line.itemId,
+      reason: "RELEASE",
+      units: pending,
+      availableDelta: pending,
+      actor,
+      requestId,
+      requestLineId: line.id,
+      note,
     });
-    await tx.requestLine.update({ where: { id: line.id }, data: { deducted: 0 } });
+
+    await tx.requestLine.update({
+      where: { id: line.id },
+      data: { released: { increment: pending } },
+    });
+
+    releasedTotal += pending;
   }
+
+  return releasedTotal;
 }
 
 /* ---------------------------------------------------------- إنشاء الطلبات */
@@ -81,9 +127,15 @@ export async function createRequest(user: CurrentUser, input: CreateInput) {
   const type = input.type as RequestType;
   const lines = mergeLines(input.lines);
   const teamName = user.teamName?.trim() || user.fullName;
+  const actor = actorOf(user);
 
   return prisma.$transaction(async (tx) => {
-    const prepared: (NormalizedLine & { unit: string; deducted: number })[] = [];
+    /*
+      الترتيب مقصود: نتحقّق ثم نُنشئ الطلب ثم نخصم.
+      الخصم بعد الإنشاء هو ما يسمح لكل قيد في دفتر الحركة أن يشير إلى رقم
+      الطلب والسطر، فيصبح أثر كل وحدة قابلًا للتتبّع من الطرفين.
+    */
+    const prepared: (NormalizedLine & { unit: string; reserve: number })[] = [];
 
     for (const line of lines) {
       // ---------- طلب عهدة: يجب أن يكون الغرض موجودًا ومتاحًا بالكمية المطلوبة
@@ -92,20 +144,9 @@ export async function createRequest(user: CurrentUser, input: CreateInput) {
         const item = await tx.item.findUnique({ where: { id: line.itemId } });
         if (!item || !item.isActive) throw notFound("أحد الأغراض المطلوبة لم يعد متاحًا");
 
-        // خصم ذرّي مشروط: ينجح فقط إذا كانت الكمية ما زالت كافية.
-        // هذا النمط آمن أمام الطلبات المتزامنة ولا يعتمد على مستوى عزل معيّن.
-        const updated = await tx.item.updateMany({
-          where: { id: item.id, quantity: { gte: line.quantity } },
-          data: { quantity: { decrement: line.quantity } },
-        });
-
-        if (updated.count !== 1) {
-          const fresh = await tx.item.findUnique({
-            where: { id: item.id },
-            select: { quantity: true, unit: true },
-          });
+        if (item.quantity < line.quantity) {
           throw conflict(
-            `الكمية المتاحة من «${item.name}» غير كافية — المتوفّر الآن ${fresh?.quantity ?? 0} ${item.unit}. ` +
+            `الكمية المتاحة من «${item.name}» غير كافية — المتوفّر الآن ${item.quantity} ${item.unit}. ` +
               "يمكنك تقديم «طلب كمية إضافية» بدلًا من ذلك.",
           );
         }
@@ -114,7 +155,7 @@ export async function createRequest(user: CurrentUser, input: CreateInput) {
           ...line,
           itemName: item.name,
           unit: item.unit,
-          deducted: line.quantity,
+          reserve: line.quantity,
         });
         continue;
       }
@@ -132,7 +173,7 @@ export async function createRequest(user: CurrentUser, input: CreateInput) {
           );
         }
 
-        prepared.push({ ...line, itemName: item.name, unit: item.unit, deducted: 0 });
+        prepared.push({ ...line, itemName: item.name, unit: item.unit, reserve: 0 });
         continue;
       }
 
@@ -146,12 +187,12 @@ export async function createRequest(user: CurrentUser, input: CreateInput) {
               "استخدم «طلب عهدة» أو «طلب كمية إضافية».",
           );
         }
-        prepared.push({ ...line, itemName: item.name, unit: item.unit, deducted: 0 });
+        prepared.push({ ...line, itemName: item.name, unit: item.unit, reserve: 0 });
         continue;
       }
 
       if (!line.itemName) throw badRequest("اكتب اسم الغرض المطلوب شراؤه");
-      prepared.push({ ...line, unit: "قطعة", deducted: 0 });
+      prepared.push({ ...line, unit: "قطعة", reserve: 0 });
     }
 
     const created = await tx.request.create({
@@ -168,13 +209,50 @@ export async function createRequest(user: CurrentUser, input: CreateInput) {
             itemName: line.itemName,
             unit: line.unit,
             quantity: line.quantity,
-            deducted: line.deducted,
+            deducted: 0,
             note: line.note,
           })),
         },
       },
       include: { lines: true },
     });
+
+    /*
+      الحجز: خصم ذرّي مشروط داخل applyMovement — ينجح فقط إذا كان الرصيد ما
+      زال كافيًا، فلا ينكسر أمام طلبين متزامنين على الغرض نفسه.
+
+      الربط بالغرض لا بترتيب الأسطر: mergeLines يضمن ألّا يتكرّر الغرض في
+      الطلب، وكل سطر عهدة له itemId، فالمفتاح فريد ولا يعتمد على ترتيب ما
+      يعيده Prisma.
+    */
+    const reserveByItem = new Map<number, number>();
+    for (const plan of prepared) {
+      if (plan.itemId !== null && plan.reserve > 0) {
+        reserveByItem.set(plan.itemId, plan.reserve);
+      }
+    }
+
+    for (const line of created.lines) {
+      if (line.itemId === null) continue;
+      const reserve = reserveByItem.get(line.itemId);
+      if (!reserve) continue;
+
+      await applyMovement(tx, {
+        itemId: line.itemId,
+        reason: "RESERVE",
+        units: reserve,
+        availableDelta: -reserve,
+        actor,
+        requestId: created.id,
+        requestLineId: line.id,
+        note: `حجز لطلب #${created.id} — ${teamName}`,
+      });
+
+      await tx.requestLine.update({
+        where: { id: line.id },
+        data: { deducted: reserve },
+      });
+    }
 
     await logActivity(tx, {
       actorId: user.id,
@@ -187,7 +265,12 @@ export async function createRequest(user: CurrentUser, input: CreateInput) {
         `باسم ${teamName} (${prepared.length} صنف)`,
     });
 
-    return created;
+    // findUniqueOrThrow لا findUnique: الطلب أُنشئ في هذه المعاملة نفسها،
+    // فالنتيجة غير قابلة للعدم ولا داعي لأن يحملها النوع كاحتمال.
+    return tx.request.findUniqueOrThrow({
+      where: { id: created.id },
+      include: { lines: true },
+    });
   });
 }
 
@@ -198,12 +281,23 @@ export async function decideRequest(
   requestId: number,
   input: DecisionInput,
 ) {
+  const actor = actorOf(user);
+
   return prisma.$transaction(async (tx) => {
     const request = await tx.request.findUnique({ where: { id: requestId } });
     if (!request) throw notFound("الطلب غير موجود");
 
     const from = request.status as RequestStatus;
     const to = input.status as RequestStatus;
+
+    /*
+      الإلغاء ليس قرارًا: له مساره الخاص وشرط ملكيته الخاص (cancelRequest).
+      نمنعه هنا صراحةً حتى لا يفتح انتقالٌ مسموح في ALLOWED_TRANSITIONS بابًا
+      يتخطّى فكّ الحجز لو وُسِّعت مخطوطة التحقّق يومًا.
+    */
+    if (to === "CANCELLED") {
+      throw badRequest("الإلغاء يتم من مسار إلغاء الطلب لا من مسار القرار");
+    }
 
     if (!isOpenStatus(from)) {
       throw conflict(
@@ -214,9 +308,15 @@ export async function decideRequest(
       throw conflict("لا يمكن نقل الطلب إلى هذه الحالة");
     }
 
-    // الرفض يعيد الكميات المحجوزة إلى المخزون فورًا
+    // الرفض يفكّ الحجز ويعيد الكميات إلى المخزون فورًا
+    let released = 0;
     if (to === "REJECTED") {
-      await restoreStock(tx, requestId);
+      released = await releaseReservations(
+        tx,
+        requestId,
+        actor,
+        `فكّ حجز برفض الطلب #${requestId}`,
+      );
     }
 
     const isFinal = to === "APPROVED" || to === "REJECTED";
@@ -239,6 +339,12 @@ export async function decideRequest(
           ? "REQUEST_REJECT"
           : "REQUEST_REVIEW";
 
+    // بعد القبول تتحوّل الكميات من «محجوزة» إلى «عهدة في يد الفرقة»
+    const custody = updated.lines.reduce(
+      (sum, line) => sum + lineOutstanding(line),
+      0,
+    );
+
     await logActivity(tx, {
       actorId: user.id,
       actorName: user.fullName,
@@ -247,7 +353,8 @@ export async function decideRequest(
       entityId: requestId,
       summary:
         `غيّر حالة الطلب #${requestId} إلى «${REQUEST_STATUS_LABELS[to]}»` +
-        (to === "REJECTED" ? " وأُعيدت الكميات المحجوزة إلى المخزون" : ""),
+        (to === "REJECTED" && released > 0 ? ` وأعاد ${released} وحدة إلى المخزون` : "") +
+        (to === "APPROVED" && custody > 0 ? ` — ${custody} وحدة في عهدة ${updated.teamName}` : ""),
     });
 
     return updated;
@@ -257,6 +364,8 @@ export async function decideRequest(
 /* ---------------------------------------------------------- إلغاء الطلب */
 
 export async function cancelRequest(user: CurrentUser, requestId: number) {
+  const actor = actorOf(user);
+
   return prisma.$transaction(async (tx) => {
     const request = await tx.request.findUnique({ where: { id: requestId } });
     if (!request) throw notFound("الطلب غير موجود");
@@ -268,7 +377,12 @@ export async function cancelRequest(user: CurrentUser, requestId: number) {
       throw conflict("لا يمكن إلغاء طلب تم البتّ فيه أو إلغاؤه مسبقًا");
     }
 
-    await restoreStock(tx, requestId);
+    const released = await releaseReservations(
+      tx,
+      requestId,
+      actor,
+      `فكّ حجز بإلغاء الطلب #${requestId}`,
+    );
 
     const updated = await tx.request.update({
       where: { id: requestId },
@@ -282,7 +396,9 @@ export async function cancelRequest(user: CurrentUser, requestId: number) {
       action: "REQUEST_CANCEL",
       entity: "Request",
       entityId: requestId,
-      summary: `ألغى طلبه رقم #${requestId} وأُعيدت الكميات المحجوزة إلى المخزون`,
+      summary:
+        `ألغى طلبه رقم #${requestId}` +
+        (released > 0 ? ` وأُعيدت ${released} وحدة إلى المخزون` : ""),
     });
 
     return updated;

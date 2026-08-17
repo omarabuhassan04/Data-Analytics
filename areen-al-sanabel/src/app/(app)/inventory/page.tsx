@@ -1,21 +1,22 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  Check,
-  Minus,
-  Plus,
-  PackageSearch,
-  Search,
-  ShoppingBasket,
-  ShoppingCart,
-  Sparkles,
-} from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import useSWR from "swr";
 
 import { useCart } from "@/components/cart";
+import {
+  IconCheck,
+  IconFootlocker,
+  IconKnapsack,
+  IconLantern,
+  IconMinus,
+  IconPlus,
+  IconProcure,
+  IconRestock,
+  IconSearch,
+} from "@/components/icons";
 import { useSessionUser } from "@/components/session";
 import { StockBadge } from "@/components/status";
 import { useToast } from "@/components/toast";
@@ -67,12 +68,11 @@ export default function InventoryPage() {
     <div>
       <PageHeader
         title="مخزون المقر"
-        description="تصفّح العتاد المتوفّر وأضِف ما تحتاجه إلى سلة العهدة"
         action={
           canRequest ? (
             <Link href="/cart">
               <Button variant="secondary" size="sm">
-                <ShoppingBasket className="size-4" />
+                <IconKnapsack className="size-4" />
                 سلة العهدة
               </Button>
             </Link>
@@ -84,7 +84,7 @@ export default function InventoryPage() {
       <Card className="mb-5 p-4">
         <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
           <div className="relative">
-            <Search className="pointer-events-none absolute inset-y-0 start-3 my-auto size-4.5 text-ink-300" />
+            <IconSearch className="pointer-events-none absolute inset-y-0 start-3 my-auto size-4.5 text-ink-300" />
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
@@ -132,9 +132,8 @@ export default function InventoryPage() {
       {itemsData && items.length === 0 && (
         <Card>
           <EmptyState
-            icon={<PackageSearch className="size-6" />}
+            icon={<IconFootlocker className="size-6" />}
             title="لا توجد نتائج مطابقة"
-            description="جرّب تعديل كلمة البحث أو إزالة عوامل التصفية."
           />
         </Card>
       )}
@@ -198,6 +197,15 @@ function ItemCard({ item, canRequest }: { item: ItemDto; canRequest: boolean }) 
           <span className="text-sm font-semibold text-ink-400">{item.unit} متاحة</span>
         </div>
 
+        {/* المحتجز بالفحص موجود في المقر لكنه ليس ضمن المتاح — يُعرض منفصلًا
+            حتى لا يُقرأ الرقم الكبير أعلاه على أنه كل ما في المستودع */}
+        {item.quarantine > 0 && (
+          <p className="mt-1.5 flex items-center gap-1.5 text-xs font-bold text-sky-700">
+            <IconLantern className="size-3.5" />
+            {formatNumber(item.quarantine)} {item.unit} في فحص الجودة
+          </p>
+        )}
+
         {item.notes && (
           <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-ink-400">{item.notes}</p>
         )}
@@ -215,7 +223,7 @@ function ItemCard({ item, canRequest }: { item: ItemDto; canRequest: boolean }) 
             {outOfStock ? (
               <Link href={`/purchase?item=${item.id}`}>
                 <Button variant="secondary" size="sm" className="w-full">
-                  <ShoppingCart className="size-4" />
+                  <IconProcure className="size-4" />
                   طلب شراء
                 </Button>
               </Link>
@@ -230,7 +238,7 @@ function ItemCard({ item, canRequest }: { item: ItemDto; canRequest: boolean }) 
                       className="grid size-9 place-items-center rounded-xl text-ink-500 transition-colors hover:bg-sand-100 disabled:opacity-40"
                       disabled={quantity <= 1}
                     >
-                      <Minus className="size-4" />
+                      <IconMinus className="size-4" />
                     </button>
                     <input
                       type="number"
@@ -251,7 +259,7 @@ function ItemCard({ item, canRequest }: { item: ItemDto; canRequest: boolean }) 
                       className="grid size-9 place-items-center rounded-xl text-ink-500 transition-colors hover:bg-sand-100 disabled:opacity-40"
                       disabled={quantity >= max}
                     >
-                      <Plus className="size-4" />
+                      <IconPlus className="size-4" />
                     </button>
                   </div>
 
@@ -265,7 +273,7 @@ function ItemCard({ item, canRequest }: { item: ItemDto; canRequest: boolean }) 
                           exit={{ opacity: 0, scale: 0.8 }}
                           className="inline-flex items-center gap-1.5"
                         >
-                          <Check className="size-4" />
+                          <IconCheck className="size-4" />
                           أُضيف
                         </motion.span>
                       ) : (
@@ -276,7 +284,7 @@ function ItemCard({ item, canRequest }: { item: ItemDto; canRequest: boolean }) 
                           exit={{ opacity: 0, scale: 0.8 }}
                           className="inline-flex items-center gap-1.5"
                         >
-                          <ShoppingBasket className="size-4" />
+                          <IconKnapsack className="size-4" />
                           إضافة
                         </motion.span>
                       )}
@@ -288,7 +296,7 @@ function ItemCard({ item, canRequest }: { item: ItemDto; canRequest: boolean }) 
                   href={`/cart?extra=${item.id}`}
                   className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-ink-400 transition-colors hover:text-ember-600"
                 >
-                  <Sparkles className="size-3.5" />
+                  <IconRestock className="size-3.5" />
                   أحتاج كمية أكبر من المتوفّر
                 </Link>
               </>

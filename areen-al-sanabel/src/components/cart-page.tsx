@@ -1,21 +1,21 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  CheckCircle2,
-  Minus,
-  PackageSearch,
-  Plus,
-  Send,
-  Sparkles,
-  Trash2,
-  TriangleAlert,
-} from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 
+import {
+  IconApproved,
+  IconFootlocker,
+  IconMinus,
+  IconPlus,
+  IconRestock,
+  IconSend,
+  IconTrash,
+  IconWhistle,
+} from "@/components/icons";
 import { useCart } from "@/components/cart";
 import { useToast } from "@/components/toast";
 import {
@@ -124,7 +124,7 @@ export function CartPage() {
               transition={{ type: "spring", stiffness: 240, damping: 14, delay: 0.1 }}
               className="mx-auto grid size-20 place-items-center rounded-full bg-forest-50 text-forest-600"
             >
-              <CheckCircle2 className="size-11" />
+              <IconApproved className="size-11" />
             </motion.span>
             <h2 className="mt-5 text-xl font-extrabold text-ink-900">تم تقديم طلب العهدة</h2>
             <p className="mt-2 text-sm leading-relaxed text-ink-400">
@@ -155,12 +155,11 @@ export function CartPage() {
   if (cart.lines.length === 0) {
     return (
       <div>
-        <PageHeader title="سلة العهدة" description="راجع الأغراض المطلوبة قبل تقديم الطلب" />
+        <PageHeader title="سلة العهدة" />
         <Card>
           <EmptyState
-            icon={<PackageSearch className="size-6" />}
+            icon={<IconFootlocker className="size-6" />}
             title="سلتك فارغة"
-            description="تصفّح مخزون المقر وأضِف الأغراض التي تحتاجها فرقتك."
             action={
               <Link href="/inventory">
                 <Button>تصفّح المخزون</Button>
@@ -181,7 +180,7 @@ export function CartPage() {
         description={`${formatNumber(cart.count)} صنف · ${formatNumber(cart.totalUnits)} قطعة`}
         action={
           <Button variant="ghost" size="sm" onClick={cart.clear}>
-            <Trash2 className="size-4" />
+            <IconTrash className="size-4" />
             إفراغ السلة
           </Button>
         }
@@ -195,13 +194,13 @@ export function CartPage() {
             exit={{ opacity: 0, y: -8 }}
             className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-ember-300 bg-ember-50 p-4"
           >
-            <TriangleAlert className="size-5 shrink-0 text-ember-600" />
+            <IconWhistle className="size-5 shrink-0 text-ember-600" />
             <p className="flex-1 text-sm font-semibold text-ember-700">
               بعض الكميات تتجاوز المتوفّر حاليًا في المخزون. خفّضها إلى المتاح، أو قدّم «طلب كمية
               إضافية» بالفارق.
             </p>
             <Button size="sm" variant="secondary" onClick={() => setExtraOpen(true)}>
-              <Sparkles className="size-4" />
+              <IconRestock className="size-4" />
               طلب كمية إضافية
             </Button>
           </motion.div>
@@ -249,7 +248,7 @@ export function CartPage() {
                               aria-label="إنقاص الكمية"
                               className="grid size-9 place-items-center rounded-xl text-ink-500 hover:bg-sand-100"
                             >
-                              <Minus className="size-4" />
+                              <IconMinus className="size-4" />
                             </button>
                             <input
                               type="number"
@@ -270,7 +269,7 @@ export function CartPage() {
                               aria-label="زيادة الكمية"
                               className="grid size-9 place-items-center rounded-xl text-ink-500 hover:bg-sand-100"
                             >
-                              <Plus className="size-4" />
+                              <IconPlus className="size-4" />
                             </button>
                           </div>
 
@@ -280,7 +279,7 @@ export function CartPage() {
                             aria-label={`إزالة ${line.name}`}
                             className="grid size-9 place-items-center rounded-xl text-ink-400 transition-colors hover:bg-crimson-50 hover:text-crimson-600"
                           >
-                            <Trash2 className="size-4" />
+                            <IconTrash className="size-4" />
                           </button>
                         </div>
                       </div>
@@ -355,7 +354,7 @@ export function CartPage() {
               loading={submitting}
               disabled={hasShortage}
             >
-              <Send className="size-4" />
+              <IconSend className="size-4" />
               تقديم طلب العهدة
             </Button>
 
@@ -378,7 +377,7 @@ export function CartPage() {
               className="mt-3 w-full"
               onClick={() => setExtraOpen(true)}
             >
-              <Sparkles className="size-4" />
+              <IconRestock className="size-4" />
               طلب كمية إضافية
             </Button>
           </Card>
@@ -479,13 +478,11 @@ function AdditionalQuantityModal({
       open={open}
       onClose={onClose}
       title="طلب كمية إضافية"
-      description="للأغراض الموجودة في المخزون لكن المتوفّر منها لا يكفي حاجة فرقتك."
       size="lg"
     >
       {lines.length === 0 ? (
         <EmptyState
           title="لا توجد أغراض لعرضها"
-          description="أضِف أغراضًا إلى سلة العهدة أولًا، ثم حدّد الكمية الإضافية المطلوبة."
         />
       ) : (
         <form onSubmit={submit} className="space-y-4">
@@ -536,7 +533,7 @@ function AdditionalQuantityModal({
               إلغاء
             </Button>
             <Button type="submit" loading={submitting}>
-              <Send className="size-4" />
+              <IconSend className="size-4" />
               تقديم الطلب
             </Button>
           </div>

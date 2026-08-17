@@ -8,7 +8,6 @@ export default function MyRequestsPage() {
     <div>
       <PageHeader
         title="طلباتي"
-        description="متابعة حالة طلبات العهدة والكميات الإضافية والشراء التي قدّمتها"
       />
       <RequestsList scope="mine" />
     </div>

@@ -1,7 +1,6 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { AlertCircle, CheckCircle2, Info, X } from "lucide-react";
 import {
   createContext,
   useCallback,
@@ -12,6 +11,12 @@ import {
   type ReactNode,
 } from "react";
 
+import {
+  IconApproved,
+  IconClose,
+  IconInfo,
+  IconWhistle,
+} from "@/components/icons";
 import { cn } from "@/lib/cn";
 
 type ToastKind = "success" | "error" | "info";
@@ -28,15 +33,15 @@ const ToastContext = createContext<ToastApi | null>(null);
 const TOAST_STYLES: Record<ToastKind, { className: string; icon: ReactNode }> = {
   success: {
     className: "border-forest-200 bg-forest-50 text-forest-700",
-    icon: <CheckCircle2 className="size-5 shrink-0 text-forest-600" />,
+    icon: <IconApproved className="size-5 shrink-0 text-forest-600" />,
   },
   error: {
     className: "border-crimson-200 bg-crimson-50 text-crimson-700",
-    icon: <AlertCircle className="size-5 shrink-0 text-crimson-600" />,
+    icon: <IconWhistle className="size-5 shrink-0 text-crimson-600" />,
   },
   info: {
     className: "border-ember-200 bg-ember-50 text-ember-700",
-    icon: <Info className="size-5 shrink-0 text-ember-600" />,
+    icon: <IconInfo className="size-5 shrink-0 text-ember-600" />,
   },
 };
 
@@ -98,7 +103,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 aria-label="إغلاق التنبيه"
                 className="shrink-0 rounded p-0.5 opacity-60 transition-opacity hover:opacity-100"
               >
-                <X className="size-4" />
+                <IconClose className="size-4" />
               </button>
             </motion.div>
           ))}

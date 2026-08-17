@@ -1,37 +1,40 @@
 "use client";
 
-import { motion } from "framer-motion";
-import {
-  ArrowLeft,
-  CheckCircle2,
-  CircleDashed,
-  Eye,
-  ListChecks,
-  PackageSearch,
-  ScrollText,
-  ShoppingBasket,
-  ShoppingCart,
-  TriangleAlert,
-  XCircle,
-} from "lucide-react";
 import Link from "next/link";
 import useSWR from "swr";
 
-import { CompassMechanism } from "@/components/kinetic/mechanism";
-import { EdgeStat, FiberProgress, HoloPanel, RopeFrame } from "@/components/kinetic/parts";
+import {
+  IconApproved,
+  IconCairn,
+  IconForward,
+  IconFootlocker,
+  IconLantern,
+  IconLens,
+  IconRejected,
+  IconReturn,
+  IconWhistle,
+} from "@/components/icons";
 import { useSessionUser } from "@/components/session";
 import { StatusBadge, TypeBadge } from "@/components/status";
-import { ErrorBlock, LoadingBlock } from "@/components/ui";
+import {
+  Card,
+  CardHeader,
+  ErrorBlock,
+  LoadingBlock,
+  Meter,
+  PageHeader,
+  Stat,
+} from "@/components/ui";
 import { errorMessage } from "@/lib/client";
-import { can, GROUP_NAME, ROLE_LABELS } from "@/lib/domain";
+import { can, ROLE_LABELS } from "@/lib/domain";
 import { formatNumber, formatRelative } from "@/lib/format";
 import type { DashboardDto } from "@/lib/types";
 
 const STATS = [
-  { key: "PENDING", label: "قيد الانتظار", icon: CircleDashed, tone: "warm" as const },
-  { key: "UNDER_REVIEW", label: "قيد المراجعة", icon: Eye, tone: "cool" as const },
-  { key: "APPROVED", label: "مقبولة", icon: CheckCircle2, tone: "cool" as const },
-  { key: "REJECTED", label: "مرفوضة", icon: XCircle, tone: "hot" as const },
+  { key: "PENDING", label: "قيد الانتظار", icon: IconCairn, tone: "warm" as const },
+  { key: "UNDER_REVIEW", label: "قيد المراجعة", icon: IconLens, tone: "neutral" as const },
+  { key: "APPROVED", label: "مقبولة", icon: IconApproved, tone: "good" as const },
+  { key: "REJECTED", label: "مرفوضة", icon: IconRejected, tone: "bad" as const },
 ];
 
 export default function DashboardPage() {
@@ -40,7 +43,6 @@ export default function DashboardPage() {
     refreshInterval: 30_000,
   });
 
-  const canCreate = can(user.role, "requests:create");
   const canDecide = can(user.role, "requests:decide");
   const seesAll = can(user.role, "requests:read:all");
 
@@ -54,54 +56,11 @@ export default function DashboardPage() {
     : 0;
 
   return (
-    <div className="space-y-6">
-      {/* الترويسة: آلية البوصلة داخل إطار حبل مجدول */}
-      <RopeFrame>
-        <div className="relative bg-[rgba(6,14,16,0.82)] p-5 backdrop-blur-md sm:p-7">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -top-16 -end-10 size-64 rounded-full"
-            style={{
-              background:
-                "radial-gradient(closest-side, rgba(86,224,200,0.16), transparent 72%)",
-            }}
-          />
-          <div className="relative flex flex-wrap items-center gap-5">
-            <CompassMechanism size={104} className="drop-shadow-[0_0_18px_rgba(201,154,63,0.45)]" />
-
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold tracking-wide text-[#7fe6d0]">
-                {ROLE_LABELS[user.role]}
-                {user.teamName ? ` · ${user.teamName}` : ""}
-              </p>
-              <h1 className="mt-1 text-2xl font-extrabold text-[#f0f8f6] sm:text-3xl">
-                أهلًا بك، {user.fullName}
-              </h1>
-              <p className="mt-2 max-w-xl text-sm leading-relaxed text-[#a8c2bd]">
-                {canDecide
-                  ? `مركز قيادة مخزون مقر ${GROUP_NAME} والبتّ في طلبات الفرق.`
-                  : canCreate
-                    ? "تصفّح عتاد المقر، جهّز سلة العهدة، وتابع حالة طلباتك."
-                    : `اطّلاع كامل على مخزون ${GROUP_NAME} وطلبات جميع الفرق.`}
-              </p>
-
-              {canCreate && (
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <QuickLink href="/inventory" icon={<PackageSearch className="size-4" />}>
-                    تصفّح المخزون
-                  </QuickLink>
-                  <QuickLink href="/cart" icon={<ShoppingBasket className="size-4" />}>
-                    سلة العهدة
-                  </QuickLink>
-                  <QuickLink href="/purchase" icon={<ShoppingCart className="size-4" />}>
-                    طلب شراء
-                  </QuickLink>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </RopeFrame>
+    <div className="space-y-5">
+      <PageHeader
+        title="لوحة التحكم"
+        description={`${ROLE_LABELS[user.role]}${user.teamName ? ` · ${user.teamName}` : ""}`}
+      />
 
       {error && <ErrorBlock message={errorMessage(error)} />}
       {isLoading && !data && <LoadingBlock />}
@@ -109,151 +68,146 @@ export default function DashboardPage() {
       {data && (
         <>
           {canDecide && data.actionableCount > 0 && (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-              <Link
-                href="/requests?status=PENDING"
-                className="led-edge flex items-center gap-3 rounded-2xl bg-[rgba(42,20,8,0.85)] p-4 backdrop-blur-md transition-colors hover:bg-[rgba(58,28,10,0.9)]"
-              >
-                <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-[#ffb347] text-[#2a1408]">
-                  <TriangleAlert className="size-5" />
-                </span>
-                <span className="flex-1">
-                  <span className="block font-bold text-[#ffd98a]">
-                    {formatNumber(data.actionableCount)} طلب بانتظار إجراء منك
-                  </span>
-                  <span className="block text-sm text-[#c8a97c]">
-                    راجع الطلبات المفتوحة واتّخذ القرار المناسب
-                  </span>
-                </span>
-                <ArrowLeft className="size-5 shrink-0 text-[#ffb347]" />
-              </Link>
-            </motion.div>
+            <Link
+              href="/requests?status=PENDING"
+              className="rise flex items-center gap-3 rounded-xl border border-ember-200 bg-ember-50 p-4 transition-colors hover:border-ember-400"
+            >
+              <IconWhistle className="size-5 shrink-0 text-ember-400" />
+              <span className="flex-1 font-bold text-ember-300">
+                {formatNumber(data.actionableCount)} طلب بانتظار قرارك
+              </span>
+              <IconForward className="size-5 shrink-0 text-ember-400" />
+            </Link>
           )}
 
-          {/* شارات الحالة المضاءة */}
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            {STATS.map((stat, index) => {
+            {STATS.map((stat) => {
               const Icon = stat.icon;
               return (
-                <motion.div
+                <Stat
                   key={stat.key}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.05 * index, duration: 0.35 }}
-                >
-                  <EdgeStat
-                    icon={<Icon className="size-5" />}
-                    value={data.statusCounts[stat.key] ?? 0}
-                    label={stat.label}
-                    tone={stat.tone}
-                    delay={index * 0.4}
-                  />
-                </motion.div>
+                  icon={<Icon className="size-4" />}
+                  label={stat.label}
+                  value={formatNumber(data.statusCounts[stat.key] ?? 0)}
+                  tone={stat.tone}
+                />
               );
             })}
           </div>
 
-          {/* أشرطة الألياف الضوئية — مقاييس حقيقية من قاعدة البيانات */}
+          {/* العهدة المعلّقة — العتاد الذي خرج ولم يرجع بعد */}
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+            <Stat
+              icon={<IconReturn className="size-4" />}
+              label="عهدة لم ترجع"
+              value={formatNumber(data.custody.outstandingUnits)}
+              suffix="وحدة"
+              hint={
+                data.custody.requestCount > 0
+                  ? `في ${formatNumber(data.custody.requestCount)} طلب`
+                  : undefined
+              }
+              tone={data.custody.outstandingUnits > 0 ? "warm" : "good"}
+            />
+            <Stat
+              icon={<IconLantern className="size-4" />}
+              label="محتجز بالفحص"
+              value={formatNumber(data.custody.quarantineUnits)}
+              suffix="وحدة"
+              tone={data.custody.quarantineUnits > 0 ? "warm" : "neutral"}
+            />
+            {data.custody.oldest && (
+              <Stat
+                icon={<IconCairn className="size-4" />}
+                label="أقدم عهدة مفتوحة"
+                value={formatRelative(data.custody.oldest)}
+              />
+            )}
+          </div>
+
           <div className="grid gap-4 lg:grid-cols-2">
-            <HoloPanel className="p-5">
-              <h2 className="mb-4 flex items-center gap-2 text-base font-bold text-[#f0f8f6]">
-                <ListChecks className="size-5 text-[#7fe6d0]" />
-                تدفّق الطلبات
-              </h2>
-              <div className="space-y-4">
-                <FiberProgress
-                  label="طلبات مفتوحة"
+            <Card className="p-5">
+              <h2 className="mb-4 text-base font-bold text-ink-900">تدفّق الطلبات</h2>
+              <div className="space-y-3.5">
+                <Meter
+                  label="مفتوحة"
                   value={data.openCount}
-                  max={Math.max(totalRequests, 1)}
+                  max={totalRequests}
                   suffix="طلب"
-                  hint={
-                    seesAll ? "من جميع الفرق" : `من إجمالي طلبات ${user.teamName ?? "فرقتك"}`
-                  }
                   tone="warm"
                 />
-                <FiberProgress
-                  label="طلبات مقبولة"
+                <Meter
+                  label="مقبولة"
                   value={data.statusCounts.APPROVED ?? 0}
-                  max={Math.max(totalRequests, 1)}
+                  max={totalRequests}
                   suffix="طلب"
-                  tone="cool"
+                  tone="good"
                 />
               </div>
-            </HoloPanel>
+            </Card>
 
             {inventory && (
-              <HoloPanel className="p-5">
-                <h2 className="mb-4 flex items-center gap-2 text-base font-bold text-[#f0f8f6]">
-                  <PackageSearch className="size-5 text-[#7fe6d0]" />
-                  جاهزية المخزون
-                </h2>
-                <div className="space-y-4">
-                  <FiberProgress
-                    label="أصناف بكمية كافية"
+              <Card className="p-5">
+                <h2 className="mb-4 text-base font-bold text-ink-900">جاهزية المخزون</h2>
+                <div className="space-y-3.5">
+                  <Meter
+                    label="كمية كافية"
                     value={healthy}
-                    max={Math.max(inventory.totalItems, 1)}
+                    max={inventory.totalItems}
                     suffix="صنف"
-                    tone="cool"
+                    tone="good"
                   />
-                  <FiberProgress
+                  <Meter
                     label="كمية منخفضة"
                     value={inventory.lowStock}
-                    max={Math.max(inventory.totalItems, 1)}
+                    max={inventory.totalItems}
                     suffix="صنف"
                     tone="warm"
                   />
-                  <FiberProgress
-                    label="نفد المخزون"
+                  <Meter
+                    label="نفد"
                     value={inventory.outOfStock}
-                    max={Math.max(inventory.totalItems, 1)}
+                    max={inventory.totalItems}
                     suffix="صنف"
-                    tone="hot"
+                    tone="bad"
                   />
                 </div>
-              </HoloPanel>
+              </Card>
             )}
           </div>
 
           <div className="grid gap-4 lg:grid-cols-3">
-            {/* أحدث الطلبات */}
-            <HoloPanel className="overflow-hidden lg:col-span-2">
-              <div className="flex items-center justify-between gap-3 border-b border-[color:var(--panel-line)] p-4 sm:p-5">
-                <div>
-                  <h2 className="text-base font-bold text-[#f0f8f6]">
-                    {seesAll ? "أحدث الطلبات" : "أحدث طلباتي"}
-                  </h2>
-                  <p className="mt-0.5 text-xs text-[#8fa8a3]">
-                    {seesAll ? "من جميع الفرق" : `طلبات ${user.teamName ?? "فرقتك"}`}
-                  </p>
-                </div>
-                <Link
-                  href={seesAll ? "/requests" : "/my-requests"}
-                  className="text-sm font-bold text-[#7fe6d0] hover:underline"
-                >
-                  عرض الكل
-                </Link>
-              </div>
+            <Card className="overflow-hidden lg:col-span-2">
+              <CardHeader
+                title={seesAll ? "أحدث الطلبات" : "أحدث طلباتي"}
+                action={
+                  <Link
+                    href={seesAll ? "/requests" : "/my-requests"}
+                    className="text-sm font-bold text-ember-300 hover:underline"
+                  >
+                    الكل
+                  </Link>
+                }
+              />
 
               {data.recentRequests.length === 0 ? (
-                <p className="px-5 py-10 text-center text-sm text-[#8fa8a3]">
-                  لا توجد طلبات بعد.
-                </p>
+                <p className="px-5 py-10 text-center text-sm text-ink-400">لا توجد طلبات.</p>
               ) : (
-                <ul className="divide-y divide-[color:var(--panel-line)]">
+                <ul className="divide-y divide-sand-200">
                   {data.recentRequests.map((request) => (
                     <li key={request.id}>
                       <Link
                         href={`/requests/${request.id}`}
-                        className="flex flex-wrap items-center gap-3 px-4 py-3.5 transition-colors hover:bg-white/[0.04] sm:px-5"
+                        className="flex flex-wrap items-center gap-3 px-4 py-3 transition-colors hover:bg-sand-200 sm:px-5"
                       >
-                        <span className="tabular grid size-10 shrink-0 place-items-center rounded-xl bg-[rgba(86,224,200,0.12)] text-sm font-bold text-[#7fe6d0]">
-                          #{request.id}
+                        <span className="tabular grid size-9 shrink-0 place-items-center rounded-lg bg-sand-200 text-sm font-bold text-ink-600">
+                          {request.id}
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-bold text-[#e6f4f1]">
-                            {request.purpose || "طلب بدون وصف"}
+                          <span className="block truncate text-sm font-bold text-ink-800">
+                            {request.purpose || `${request.teamName}`}
                           </span>
-                          <span className="mt-0.5 block text-xs text-[#8fa8a3]">
+                          <span className="mt-0.5 block text-xs text-ink-400">
                             {request.teamName} · {request._count.lines} صنف ·{" "}
                             {formatRelative(request.createdAt)}
                           </span>
@@ -267,109 +221,70 @@ export default function DashboardPage() {
                   ))}
                 </ul>
               )}
-            </HoloPanel>
+            </Card>
 
             <div className="space-y-4">
-              {inventory && (
-                <HoloPanel className="overflow-hidden">
-                  <div className="border-b border-[color:var(--panel-line)] p-4">
-                    <h2 className="flex items-center gap-2 text-base font-bold text-[#f0f8f6]">
-                      <TriangleAlert className="size-5 text-[#ffb347]" />
-                      تنبيهات المخزون
-                    </h2>
-                    <p className="mt-0.5 text-xs text-[#8fa8a3]">
-                      {formatNumber(inventory.outOfStock)} نفد ·{" "}
-                      {formatNumber(inventory.lowStock)} منخفض
-                    </p>
-                  </div>
-
-                  {inventory.alerts.length === 0 ? (
-                    <p className="px-4 py-8 text-center text-sm text-[#8fa8a3]">
-                      المخزون بحالة جيدة.
-                    </p>
-                  ) : (
-                    <ul className="divide-y divide-[color:var(--panel-line)]">
-                      {inventory.alerts.map((item) => (
-                        <li
-                          key={item.id}
-                          className="flex items-center justify-between gap-3 px-4 py-3"
+              {inventory && inventory.alerts.length > 0 && (
+                <Card className="overflow-hidden">
+                  <CardHeader
+                    title="تنبيهات المخزون"
+                    icon={<IconFootlocker className="size-5" />}
+                    subtitle={`${formatNumber(inventory.outOfStock)} نفد · ${formatNumber(inventory.lowStock)} منخفض`}
+                  />
+                  <ul className="divide-y divide-sand-200">
+                    {inventory.alerts.map((item) => (
+                      <li
+                        key={item.id}
+                        className="flex items-center justify-between gap-3 px-4 py-2.5"
+                      >
+                        <span className="min-w-0 truncate text-sm font-semibold text-ink-800">
+                          {item.name}
+                        </span>
+                        <span
+                          className={`tabular shrink-0 text-sm font-bold ${
+                            item.level === "OUT" ? "text-crimson-600" : "text-ember-300"
+                          }`}
                         >
-                          <span className="min-w-0">
-                            <span className="block truncate text-sm font-semibold text-[#e6f4f1]">
-                              {item.name}
-                            </span>
-                            <span className="block text-xs text-[#8fa8a3]">
-                              الحد الأدنى {formatNumber(item.threshold)} {item.unit}
-                            </span>
-                          </span>
-                          <span
-                            className={`tabular shrink-0 rounded-lg px-2 py-1 text-sm font-bold ${
-                              item.level === "OUT"
-                                ? "bg-[rgba(226,59,46,0.16)] text-[#ff9a8f]"
-                                : "bg-[rgba(255,179,71,0.16)] text-[#ffc978]"
-                            }`}
-                          >
-                            {formatNumber(item.quantity)} {item.unit}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </HoloPanel>
+                          {formatNumber(item.quantity)} {item.unit}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </Card>
               )}
 
               {data.recentActivity.length > 0 && (
-                <HoloPanel className="overflow-hidden">
-                  <div className="flex items-center justify-between gap-2 border-b border-[color:var(--panel-line)] p-4">
-                    <h2 className="flex items-center gap-2 text-base font-bold text-[#f0f8f6]">
-                      <ScrollText className="size-5 text-[#7fe6d0]" />
-                      آخر النشاطات
-                    </h2>
-                    <Link
-                      href="/activity"
-                      className="text-sm font-bold text-[#7fe6d0] hover:underline"
-                    >
-                      السجل
-                    </Link>
-                  </div>
-                  <ul className="divide-y divide-[color:var(--panel-line)]">
+                <Card className="overflow-hidden">
+                  <CardHeader
+                    title="آخر النشاطات"
+                    action={
+                      <Link
+                        href="/activity"
+                        className="text-sm font-bold text-ember-300 hover:underline"
+                      >
+                        السجل
+                      </Link>
+                    }
+                  />
+                  <ul className="divide-y divide-sand-200">
                     {data.recentActivity.map((entry) => (
-                      <li key={entry.id} className="px-4 py-3">
-                        <p className="text-sm leading-relaxed text-[#e6f4f1]">
-                          <span className="font-bold">{entry.actorName}</span> {entry.summary}
+                      <li key={entry.id} className="px-4 py-2.5">
+                        <p className="text-sm leading-relaxed text-ink-600">
+                          <span className="font-bold text-ink-800">{entry.actorName}</span>{" "}
+                          {entry.summary}
                         </p>
-                        <p className="mt-0.5 text-xs text-[#8fa8a3]">
+                        <p className="mt-0.5 text-xs text-ink-400">
                           {formatRelative(entry.createdAt)}
                         </p>
                       </li>
                     ))}
                   </ul>
-                </HoloPanel>
+                </Card>
               )}
             </div>
           </div>
         </>
       )}
     </div>
-  );
-}
-
-function QuickLink({
-  href,
-  icon,
-  children,
-}: {
-  href: string;
-  icon: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      className="trail-btn led-edge inline-flex items-center gap-2 rounded-xl bg-[rgba(86,224,200,0.1)] px-3.5 py-2 text-sm font-bold text-[#b6ffe9] transition-colors hover:bg-[rgba(86,224,200,0.18)]"
-    >
-      <span className="relative">{icon}</span>
-      <span className="relative">{children}</span>
-    </Link>
   );
 }

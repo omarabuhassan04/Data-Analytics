@@ -194,6 +194,8 @@ function daysFromNow(days: number): Date {
 async function main() {
   console.log("↻ مسح البيانات الحالية…");
   await prisma.activityLog.deleteMany();
+  // الدفتر قبل الأسطر والأغراض: يشير إليهما كلَيهما
+  await prisma.stockMovement.deleteMany();
   await prisma.requestNote.deleteMany();
   await prisma.requestLine.deleteMany();
   await prisma.request.deleteMany();
@@ -241,6 +243,24 @@ async function main() {
           categoryId: createdCategory.id,
         },
       });
+
+      // رصيد افتتاحي في الدفتر — بدونه تظهر كل الأغراض المزروعة
+      // كفروق في /api/inventory/reconcile
+      if (item.quantity > 0) {
+        await prisma.stockMovement.create({
+          data: {
+            itemId: createdItem.id,
+            reason: "OPENING",
+            units: item.quantity,
+            availableDelta: item.quantity,
+            availableAfter: item.quantity,
+            quarantineAfter: 0,
+            actorName: "النظام",
+            note: "رصيد افتتاحي",
+          },
+        });
+      }
+
       items.set(item.name, { id: createdItem.id, unit: createdItem.unit });
     }
   }
@@ -293,15 +313,40 @@ async function main() {
       },
     });
 
+    /*
+      الخصم يمرّ من الدفتر مثل التطبيق تمامًا: كل وحدة تخرج تحمل قيدًا
+      يشير إلى طلبها وسطرها. الطلبات المقبولة تبقى كميتها «معلّقة في
+      العهدة» — وهي المادة التي تعمل عليها شاشة المرتجعات.
+    */
     if (deducts) {
-      for (const line of input.lines) {
-        const item = items.get(line.itemName);
-        if (item) {
-          await prisma.item.update({
-            where: { id: item.id },
-            data: { quantity: { decrement: line.quantity } },
-          });
-        }
+      const createdLines = await prisma.requestLine.findMany({
+        where: { requestId: request.id },
+        select: { id: true, itemId: true, quantity: true },
+      });
+
+      for (const line of createdLines) {
+        if (!line.itemId) continue;
+        const updated = await prisma.item.update({
+          where: { id: line.itemId },
+          data: { quantity: { decrement: line.quantity } },
+        });
+
+        await prisma.stockMovement.create({
+          data: {
+            itemId: line.itemId,
+            reason: "RESERVE",
+            units: line.quantity,
+            availableDelta: -line.quantity,
+            availableAfter: updated.quantity,
+            quarantineAfter: updated.quarantine,
+            requestId: request.id,
+            requestLineId: line.id,
+            actorId: requester.id,
+            actorName: requester.fullName,
+            note: `حجز لطلب #${request.id}`,
+            createdAt,
+          },
+        });
       }
     }
 
