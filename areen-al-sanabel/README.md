@@ -312,6 +312,11 @@ cleanly on the app's light surfaces.
 
 ## Environment variables
 
+> The `build` script runs `prisma migrate deploy` before `next build`, so a deploy applies any
+> pending migrations by itself and `DATABASE_URL` must be set **at build time**, not only at
+> runtime. The seed is deliberately not in that chain — it opens with `deleteMany` on every table
+> and would wipe live inventory on each deploy. Seed once, by hand.
+
 | Variable                | Purpose                                                          |
 | ----------------------- | ---------------------------------------------------------------- |
 | `DATABASE_URL`          | Prisma connection string                                         |
