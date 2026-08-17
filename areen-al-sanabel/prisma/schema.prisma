@@ -16,6 +16,17 @@ datasource db {
 
 generator client {
   provider = "prisma-client-js"
+
+  /*
+    محرّك الاستعلام يُبنى لنظام التشغيل الذي وُلّد عليه العميل فقط.
+    البناء يجري على Windows بينما دوال Netlify تعمل على Linux، فينتهي
+    الأمر بحزمة تحمل محرّك ويندوز وحده وتفشل كل استعلامات قاعدة البيانات
+    في الإنتاج برسالة «database: unreachable».
+
+    "native" يبقي التطوير المحلي يعمل، و"rhel-openssl-3.0.x" هو المطلوب
+    لبيئة تشغيل Node 20 على Netlify/AWS Lambda.
+  */
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 /// المستخدمون — تُنشأ الحسابات يدويًا من قِبل قائد اللوازم (لا يوجد تسجيل ذاتي)

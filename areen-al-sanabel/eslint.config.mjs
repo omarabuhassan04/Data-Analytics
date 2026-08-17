@@ -17,6 +17,8 @@ const eslintConfig = [
       ".next/**",
       "out/**",
       "build/**",
+      // مخرجات بناء Netlify المحلية — شيفرة مولّدة لا تُفحص
+      ".netlify/**",
       "next-env.d.ts",
     ],
   },

@@ -50,3 +50,9 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# كلمات مرور الحسابات — لا تُرفع إطلاقًا
+ACCOUNT-CREDENTIALS.local.txt
+
+# حالة ربط Netlify المحلية
+.netlify/
