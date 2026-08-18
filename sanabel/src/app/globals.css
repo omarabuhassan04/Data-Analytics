@@ -1,0 +1,141 @@
+@import "tailwindcss";
+
+/*
+  الهوية البصرية — كشفية بلا طفولية.
+  أخضر الغابة للثقة والانتماء، ورق رملي للخلفية بدل الأبيض القاسي،
+  ونحاسي واحد يُحجز للإجراءات فقط حتى يبقى دالاً على «هنا تضغط».
+
+  كل الألوان معرّفة هنا وحدها؛ لا يوجد لون مكتوب بصيغة سداسية داخل أي مكوّن.
+*/
+@theme {
+  --color-canvas: #f4f2ec;
+  --color-surface: #ffffff;
+  --color-surface-2: #faf9f5;
+
+  --color-line: #e2ded2;
+  --color-line-strong: #cec8b6;
+
+  --color-ink-900: #1c1f1a;
+  --color-ink-700: #3d443a;
+  --color-ink-500: #6b7364;
+  --color-ink-400: #8c9384;
+
+  --color-forest-50: #eef4ef;
+  --color-forest-100: #d6e5da;
+  --color-forest-300: #8ab39a;
+  --color-forest-500: #3f7a56;
+  --color-forest-600: #2f6244;
+  --color-forest-700: #245036;
+  --color-forest-900: #14301f;
+
+  --color-brass-50: #fbf3e2;
+  --color-brass-100: #f5e6c8;
+  --color-brass-500: #b5822a;
+  --color-brass-600: #97691d;
+  --color-brass-700: #7a5416;
+
+  --color-danger-50: #fdecec;
+  --color-danger-500: #b3352f;
+  --color-danger-700: #8a251f;
+
+  --color-warn-50: #fdf3e0;
+  --color-warn-500: #a9762a;
+
+  --color-ok-50: #e9f4ec;
+  --color-ok-500: #2f7a4c;
+
+  --font-sans: var(--font-arabic), system-ui, sans-serif;
+
+  --radius-card: 0.875rem;
+
+  --shadow-card: 0 1px 2px rgb(28 31 26 / 0.05), 0 1px 3px rgb(28 31 26 / 0.04);
+  --shadow-pop: 0 10px 30px -10px rgb(28 31 26 / 0.25);
+}
+
+@layer base {
+  html {
+    /* الأرقام العربية الشرقية في الواجهة، مع إبقاء الحقول رقمية لاتينية */
+    font-feature-settings: "kern";
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink-900);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /*
+    شبكة كنتورية خفيفة خلف الصفحة — إيحاء بخريطة الاستكشاف دون ضجيج.
+    منفصلة عن المحتوى تماماً ولا تؤثر على التباين.
+  */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.5;
+    background-image:
+      linear-gradient(to left, rgb(36 80 54 / 0.035) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(36 80 54 / 0.035) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-forest-500);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* الحقول الرقمية تبقى بالأرقام اللاتينية لسهولة الإدخال من لوحة المفاتيح */
+  input[type="number"],
+  input[type="date"] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-line-strong);
+    border-radius: 99px;
+    border: 3px solid var(--color-canvas);
+  }
+}
+
+@layer utilities {
+  .surface {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+  }
+
+  /* حركة الدخول: خفيفة وقصيرة، تُلغى كلياً عند تفضيل تقليل الحركة */
+  .enter {
+    animation: enter 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

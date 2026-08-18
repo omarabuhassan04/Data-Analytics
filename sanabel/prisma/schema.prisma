@@ -1,0 +1,261 @@
+// نظام إدارة اللوازم والمخزون — مجموعة السنابل الكشفية
+// كل تغيّر في أرصدة المخزون يمرّ حصراً عبر src/lib/stock.ts لضمان قابلية التتبّع.
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+/// الفرق الكشفية الثلاث
+model Team {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique // ASHBAL | KASHAF | MOTAQADEM
+  name      String   @unique
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  users            User[]
+  supplyRequests   SupplyRequest[]
+  purchaseRequests PurchaseRequest[]
+}
+
+/// الحسابات — يُنشئها قائد اللوازم فقط، لا يوجد تسجيل ذاتي
+model User {
+  id           Int       @id @default(autoincrement())
+  username     String    @unique
+  fullName     String
+  /// SUPPLY_LEADER | GROUP_LEADER | ASSISTANT_GROUP_LEADER | SCOUT_LEADER | TEAM_LEADER
+  role         String
+  teamId       Int?
+  passwordHash String
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  team              Team?             @relation(fields: [teamId], references: [id])
+  supplyRequests    SupplyRequest[]   @relation("SupplyRequester")
+  purchaseRequests  PurchaseRequest[] @relation("PurchaseRequester")
+  purchaseDecisions PurchaseRequest[] @relation("PurchaseDecider")
+  returnsSubmitted  ReturnBatch[]     @relation("ReturnSubmitter")
+  returnsVerified   ReturnBatch[]     @relation("ReturnVerifier")
+  activityLogs      ActivityLog[]
+
+  @@index([role])
+  @@index([teamId])
+}
+
+/// تصنيفات العتاد
+model Category {
+  id        Int    @id @default(autoincrement())
+  name      String @unique
+  icon      String @default("box")
+  sortOrder Int    @default(0)
+
+  items            Item[]
+  purchaseRequests PurchaseRequest[]
+}
+
+/// أصناف المخزون
+model Item {
+  id         Int      @id @default(autoincrement())
+  name       String
+  unit       String   @default("قطعة")
+  categoryId Int
+  /// الكمية الصالحة المتاحة للصرف الآن
+  quantity   Int      @default(0)
+  /// إجمالي ما سُجّل تالفاً — تراكمي للتقارير، خارج المتاح
+  damagedQty Int      @default(0)
+  /// إجمالي ما سُجّل مفقوداً — تراكمي للتقارير، خارج المتاح
+  lostQty    Int      @default(0)
+  /// حد التنبيه عند انخفاض المخزون
+  threshold  Int      @default(0)
+  notes      String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  category  Category        @relation(fields: [categoryId], references: [id])
+  lines     SupplyLine[]
+  movements StockMovement[]
+
+  @@unique([name, categoryId])
+  @@index([categoryId])
+  @@index([isActive])
+}
+
+/// طلب لوازم — يُعتمد آلياً ويُخصم من المخزون فوراً
+model SupplyRequest {
+  id          Int       @id @default(autoincrement())
+  code        String    @unique
+  teamId      Int
+  requesterId Int
+  purpose     String?
+  neededOn    DateTime?
+  /// ISSUED | AWAITING_VERIFICATION | COMPLETED
+  status      String    @default("ISSUED")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+
+  team      Team          @relation(fields: [teamId], references: [id])
+  requester User          @relation("SupplyRequester", fields: [requesterId], references: [id])
+  lines     SupplyLine[]
+  returns   ReturnBatch[]
+
+  @@index([teamId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+/// سطر في طلب اللوازم — دفتر حساب العهدة
+/// المتبقّي في العهدة = quantity - returnedGood - returnedDamaged - returnedLost
+model SupplyLine {
+  id              Int    @id @default(autoincrement())
+  requestId       Int
+  itemId          Int
+  itemName        String
+  unit            String @default("قطعة")
+  quantity        Int
+  returnedGood    Int    @default(0)
+  returnedDamaged Int    @default(0)
+  returnedLost    Int    @default(0)
+
+  request     SupplyRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  item        Item          @relation(fields: [itemId], references: [id])
+  returnLines ReturnLine[]
+
+  @@index([requestId])
+  @@index([itemId])
+}
+
+/// دفعة إرجاع عهدة — تقدّمها الفرقة ويتحقّق منها قائد اللوازم
+model ReturnBatch {
+  id              Int       @id @default(autoincrement())
+  code            String    @unique
+  supplyRequestId Int
+  submittedById   Int
+  submittedAt     DateTime  @default(now())
+  /// AWAITING_VERIFICATION | VERIFIED
+  status          String    @default("AWAITING_VERIFICATION")
+  note            String?
+  verifiedById    Int?
+  verifiedAt      DateTime?
+  verifyNote      String?
+
+  supplyRequest SupplyRequest @relation(fields: [supplyRequestId], references: [id], onDelete: Cascade)
+  submittedBy   User          @relation("ReturnSubmitter", fields: [submittedById], references: [id])
+  verifiedBy    User?         @relation("ReturnVerifier", fields: [verifiedById], references: [id])
+  lines         ReturnLine[]
+
+  @@index([supplyRequestId])
+  @@index([status])
+}
+
+/// سطر إرجاع — ما صرّحت به الفرقة وما اعتمده قائد اللوازم
+model ReturnLine {
+  id              Int    @id @default(autoincrement())
+  batchId         Int
+  supplyLineId    Int
+  claimedGood     Int    @default(0)
+  claimedDamaged  Int    @default(0)
+  claimedLost     Int    @default(0)
+  verifiedGood    Int?
+  verifiedDamaged Int?
+  verifiedLost    Int?
+  note            String?
+
+  batch      ReturnBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  supplyLine SupplyLine  @relation(fields: [supplyLineId], references: [id], onDelete: Cascade)
+
+  @@index([batchId])
+  @@index([supplyLineId])
+}
+
+/// طلب شراء — مسار منفصل تماماً، لا يمسّ المخزون حتى التوريد
+model PurchaseRequest {
+  id           Int       @id @default(autoincrement())
+  code         String    @unique
+  teamId       Int
+  requesterId  Int
+  itemName     String
+  unit         String    @default("قطعة")
+  quantity     Int
+  categoryId   Int?
+  details      String?
+  /// PENDING | APPROVED | REJECTED | FULFILLED | CANCELLED
+  status       String    @default("PENDING")
+  /// عدد مرّات التعديل وإعادة التقديم بعد الرفض
+  revision     Int       @default(0)
+  decidedById  Int?
+  decidedAt    DateTime?
+  decisionNote String?
+  fulfilledAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  team      Team      @relation(fields: [teamId], references: [id])
+  requester User      @relation("PurchaseRequester", fields: [requesterId], references: [id])
+  decidedBy User?     @relation("PurchaseDecider", fields: [decidedById], references: [id])
+  category  Category? @relation(fields: [categoryId], references: [id])
+
+  @@index([teamId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+/// دفتر حركة المخزون — المصدر المحاسبي لكل تغيّر في الأرصدة
+model StockMovement {
+  id           Int      @id @default(autoincrement())
+  itemId       Int
+  /// OPENING | ADJUST | ISSUE | RETURN_GOOD | RETURN_DAMAGED | RETURN_LOST | PURCHASE_RECEIVE
+  reason       String
+  /// الأثر على الكمية المتاحة — سالب يعني خروجاً من المخزون
+  delta        Int      @default(0)
+  damagedDelta Int      @default(0)
+  lostDelta    Int      @default(0)
+  /// لقطة الرصيد المتاح بعد الحركة
+  balanceAfter Int
+  actorId      Int?
+  actorName    String
+  teamName     String?
+  refType      String?
+  refId        Int?
+  note         String?
+  createdAt    DateTime @default(now())
+
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([itemId, createdAt])
+  @@index([reason])
+  @@index([createdAt])
+}
+
+/// سجل العمليات — مسار تدقيق كامل لكل ما يجري في النظام
+model ActivityLog {
+  id        Int      @id @default(autoincrement())
+  actorId   Int?
+  actorName String
+  actorRole String
+  teamName  String?
+  /// LOGIN | SUPPLY_SUBMIT | PURCHASE_SUBMIT | PURCHASE_APPROVE ...
+  action    String
+  entity    String
+  entityId  Int?
+  /// وصف عربي جاهز للعرض
+  summary   String
+  details   Json?
+  createdAt DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([action])
+  @@index([entity, entityId])
+}
