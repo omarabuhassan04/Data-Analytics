@@ -9,6 +9,8 @@ import { defineConfig } from "@playwright/test";
  */
 export default defineConfig({
   testDir: "./e2e",
+  // تصفير البيانات قبل التشغيل حتى تكون النتيجة نفسها في كل مرّة
+  globalSetup: "./e2e/global-setup.ts",
   fullyParallel: false,
   workers: 1,
   retries: 0,
