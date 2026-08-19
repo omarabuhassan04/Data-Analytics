@@ -12,6 +12,11 @@ export default function globalSetup() {
 
   execSync("npx prisma db seed", {
     stdio: "inherit",
-    env: { ...process.env, SEED_PASSWORD: process.env.SEED_PASSWORD ?? "Sanabel@2026" },
+    env: {
+      ...process.env,
+      // البذور تنسحب إن وجدت حسابات؛ الاختبارات تحتاج تصفيراً فعلياً
+      SEED_FORCE: "true",
+      SEED_PASSWORD: process.env.SEED_PASSWORD ?? "Sanabel@2026",
+    },
   });
 }

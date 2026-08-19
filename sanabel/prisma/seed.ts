@@ -1,16 +1,31 @@
 /**
  * البذور — الحسابات والتصنيفات والمخزون الافتتاحي.
  *
- * تحذير: يمسح الجداول ويعيد بناءها. يُشغَّل مرّة واحدة عند تجهيز قاعدة جديدة،
- * ولذلك هو خارج سلسلة البناء عمداً حتى لا يمحو مخزوناً حقيقياً مع كل نشر.
+ * يعمل مرّة واحدة على قاعدة فارغة ثم يتوقّف من تلقاء نفسه: إن وُجد أي حساب
+ * انسحب دون أن يمسّ شيئاً. هذا ما يجعله آمناً داخل سلسلة البناء — النشرة
+ * الأولى تجهّز النظام، وما بعدها لا يلمس مخزوناً حقيقياً.
+ *
+ * لإعادة البناء من الصفر عمداً (بيئة تطوير أو اختبارات): SEED_FORCE=true.
  */
+
+import { randomBytes } from "node:crypto";
 
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-const PASSWORD = process.env.SEED_PASSWORD ?? "Sanabel@2026";
+const FORCE = process.env.SEED_FORCE === "true";
+
+/**
+ * كلمة المرور الأولية.
+ *
+ * بلا `SEED_PASSWORD` تُولَّد كلمة عشوائية وتُطبع في سجلّ البناء بدل اللجوء
+ * إلى قيمة ثابتة: المستودع عام، وأي كلمة مكتوبة في الشيفرة تصبح معروفة
+ * للجميع لحظة نشر الموقع.
+ */
+const PASSWORD =
+  process.env.SEED_PASSWORD ?? `Sanabel@${randomBytes(6).toString("hex")}`;
 
 const TEAMS = [
   { key: "ASHBAL", name: "فرقة الأشبال", sortOrder: 1 },
@@ -137,6 +152,16 @@ const CATALOG: Array<{ name: string; icon: string; items: SeedItem[] }> = [
 ];
 
 async function main() {
+  if (!FORCE) {
+    const existing = await prisma.user.count();
+    if (existing > 0) {
+      console.log(
+        `[seed] القاعدة تحتوي ${existing} حساباً — لا شيء ليُفعل، وتُركت البيانات كما هي.`,
+      );
+      return;
+    }
+  }
+
   console.log("تفريغ الجداول…");
   await prisma.activityLog.deleteMany();
   await prisma.stockMovement.deleteMany();
@@ -230,7 +255,11 @@ async function main() {
   console.log(
     `تم: ${TEAMS.length} فرق، ${STAFF.length + TEAM_ACCOUNTS.length} حسابات، ${itemCount} صنفاً.`,
   );
-  console.log(`كلمة المرور الأولية: ${PASSWORD}`);
+  console.log("");
+  console.log("==================================================");
+  console.log(`  كلمة المرور الأولية لكل الحسابات: ${PASSWORD}`);
+  console.log("  غيّرها من صفحة «الحسابات» بعد أول دخول.");
+  console.log("==================================================");
 }
 
 main()
