@@ -6,7 +6,11 @@
  * على الخادم في auth.ts مع كل طلب.
  */
 
-import { jwtVerify, SignJWT } from "jose";
+// مسارات فرعية دقيقة بدل حزمة jose كاملة: الاستيراد العام يجرّ معه مسار فكّ
+// تشفير JWE الذي يستخدم CompressionStream، وهي غير مدعومة في بيئة Edge —
+// فيحذّر البناء من واجهة لا نستعملها أصلاً.
+import { SignJWT } from "jose/jwt/sign";
+import { jwtVerify } from "jose/jwt/verify";
 
 export const SESSION_COOKIE = "sanabel_session";
 export const SESSION_TTL_HOURS = 12;
