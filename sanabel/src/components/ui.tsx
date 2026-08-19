@@ -411,6 +411,9 @@ export function StatCard({
   icon?: ReactNode;
   href?: string;
 }) {
+  // القيم تصل منسّقة بالأرقام العربية، فيُكتشف الصفر من نصّه
+  const isEmpty = typeof value === "string" && /^[٠0]+$/.test(value.trim());
+
   const body = (
     <>
       <div className="flex items-start justify-between gap-3">
@@ -427,13 +430,19 @@ export function StatCard({
         ) : null}
       </div>
       {/*
-        الأرقام بخط النص لا بخط العناوين.
-        الصفر العربي نقطة في الأصل، والكوفي يحوّله إلى معيّن كبير عند هذا
-        الحجم فيُقرأ رمزاً لا رقماً. الخط النصّي يبقيه رقماً.
+        الصفر العربي «٠» نقطة في أصله، وعند حجم العنوان يُقرأ معيّناً أو
+        رمزاً زخرفياً لا رقماً. فحين لا يوجد ما يُعدّ نكتب شَرطة هادئة
+        وندع السطر الصغير تحتها يقول المعنى — وهو أوضح من صفر ملتبس.
       */}
-      <p className="figures mt-3 text-[32px] leading-none font-bold text-ink-900">
-        {value}
-      </p>
+      {isEmpty ? (
+        <p className="mt-3 text-[32px] leading-none font-bold text-ink-400" aria-label="لا شيء">
+          —
+        </p>
+      ) : (
+        <p className="figures mt-3 text-[32px] leading-none font-bold text-ink-900">
+          {value}
+        </p>
+      )}
       {hint ? <p className="mt-2 text-xs text-ink-400">{hint}</p> : null}
     </>
   );
