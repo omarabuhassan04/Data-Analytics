@@ -13,7 +13,7 @@ const buttonBase =
 
 const buttonVariants = {
   primary:
-    "bg-forest-700 text-white hover:bg-forest-600 active:bg-forest-900 shadow-sm",
+    "bg-brand text-brand-fg hover:bg-brand-hover active:bg-brand-active shadow-sm",
   brass: "bg-brass-600 text-white hover:bg-brass-500 active:bg-brass-700 shadow-sm",
   outline:
     "border border-line-strong bg-surface text-ink-700 hover:bg-surface-2 hover:text-ink-900",
@@ -246,7 +246,7 @@ export function Select({ className, ...props }: ComponentProps<"select">) {
       className={cn(controlClass, "h-10 cursor-pointer appearance-none bg-left bg-no-repeat pl-8", className)}
       style={{
         backgroundImage:
-          "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%236b7364' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E\")",
+          "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23939e96' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E\")",
         backgroundPosition: "left 0.6rem center",
       }}
       {...props}

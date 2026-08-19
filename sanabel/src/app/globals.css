@@ -2,10 +2,17 @@
 
 /*
   الهوية البصرية — كشفية بلا طفولية.
-  أخضر الغابة للثقة والانتماء، ورق رملي للخلفية بدل الأبيض القاسي،
-  ونحاسي واحد يُحجز للإجراءات فقط حتى يبقى دالاً على «هنا تضغط».
+  النهار: ورق رملي وأخضر غابة. الليل: مخيّم بعد الغروب — فحمي مائل للأخضر.
 
-  كل الألوان معرّفة هنا وحدها؛ لا يوجد لون مكتوب بصيغة سداسية داخل أي مكوّن.
+  كل لون معرّف مرّتين: مرّة في `:root` للنهار، ومرّة في كتلتَي الليل. المكوّنات
+  لا تعرف بالوضع شيئاً؛ تستعمل الاسم نفسه (`bg-surface`, `text-ink-900`) فينقلب
+  التطبيق كلّه من مكان واحد.
+
+  الأدوار ثابتة عبر الوضعين:
+    ink   = قوّة تباين النص (900 أقوى)
+    line  = الحدود
+    brand = خلفية الأزرار الأساسية، ومعها brand-fg للنص فوقها
+    forest-700 = لون الإبراز في النصوص والروابط
 */
 @theme {
   --color-canvas: #f4f2ec;
@@ -20,13 +27,18 @@
   --color-ink-500: #6b7364;
   --color-ink-400: #8c9384;
 
+  /* خلفية الأزرار الأساسية — تبقى خضراء مشبعة في الوضعين */
+  --color-brand: #245036;
+  --color-brand-hover: #2f6244;
+  --color-brand-active: #14301f;
+  --color-brand-fg: #ffffff;
+
   --color-forest-50: #eef4ef;
   --color-forest-100: #d6e5da;
   --color-forest-300: #8ab39a;
   --color-forest-500: #3f7a56;
   --color-forest-600: #2f6244;
   --color-forest-700: #245036;
-  --color-forest-900: #14301f;
 
   --color-brass-50: #fbf3e2;
   --color-brass-100: #f5e6c8;
@@ -52,10 +64,124 @@
   --shadow-pop: 0 10px 30px -10px rgb(28 31 26 / 0.25);
 }
 
+/*
+  الوضع الليلي.
+  يُعرَّف مرّتين عمداً: مرّة لمن اختاره صراحةً من المبدّل، ومرّة لمن ترك
+  الاختيار لنظامه. الحارس `:not([data-theme="light"])` يمنع النظام من نقض
+  اختيار المستخدم الصريح للنهار.
+*/
+@layer theme {
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --color-canvas: #0f1411;
+      --color-surface: #161d18;
+      --color-surface-2: #1c241e;
+
+      --color-line: #27322b;
+      --color-line-strong: #3a4841;
+
+      --color-ink-900: #eef2ed;
+      --color-ink-700: #c6cfc7;
+      --color-ink-500: #939e96;
+      --color-ink-400: #74807a;
+
+      --color-brand: #2f7a52;
+      --color-brand-hover: #389060;
+      --color-brand-active: #256341;
+      --color-brand-fg: #ffffff;
+
+      --color-forest-50: #16241c;
+      --color-forest-100: #1d3226;
+      --color-forest-300: #4e8b66;
+      --color-forest-500: #6cba8b;
+      --color-forest-600: #7ac697;
+      --color-forest-700: #8ad4a5;
+
+      --color-brass-50: #2a2113;
+      --color-brass-100: #3a2d18;
+      --color-brass-500: #d9a45c;
+      --color-brass-600: #a9761f;
+      --color-brass-700: #8a5f16;
+
+      --color-danger-50: #2c1616;
+      --color-danger-500: #e57b72;
+      --color-danger-700: #c85a51;
+
+      --color-warn-50: #2b2112;
+      --color-warn-500: #d9a55c;
+
+      --color-ok-50: #12271b;
+      --color-ok-500: #63c08c;
+
+      --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 1px 3px rgb(0 0 0 / 0.3);
+      --shadow-pop: 0 10px 30px -10px rgb(0 0 0 / 0.7);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --color-canvas: #0f1411;
+    --color-surface: #161d18;
+    --color-surface-2: #1c241e;
+
+    --color-line: #27322b;
+    --color-line-strong: #3a4841;
+
+    --color-ink-900: #eef2ed;
+    --color-ink-700: #c6cfc7;
+    --color-ink-500: #939e96;
+    --color-ink-400: #74807a;
+
+    --color-brand: #2f7a52;
+    --color-brand-hover: #389060;
+    --color-brand-active: #256341;
+    --color-brand-fg: #ffffff;
+
+    --color-forest-50: #16241c;
+    --color-forest-100: #1d3226;
+    --color-forest-300: #4e8b66;
+    --color-forest-500: #6cba8b;
+    --color-forest-600: #7ac697;
+    --color-forest-700: #8ad4a5;
+
+    --color-brass-50: #2a2113;
+    --color-brass-100: #3a2d18;
+    --color-brass-500: #d9a45c;
+    --color-brass-600: #a9761f;
+    --color-brass-700: #8a5f16;
+
+    --color-danger-50: #2c1616;
+    --color-danger-500: #e57b72;
+    --color-danger-700: #c85a51;
+
+    --color-warn-50: #2b2112;
+    --color-warn-500: #d9a55c;
+
+    --color-ok-50: #12271b;
+    --color-ok-500: #63c08c;
+
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 1px 3px rgb(0 0 0 / 0.3);
+    --shadow-pop: 0 10px 30px -10px rgb(0 0 0 / 0.7);
+  }
+}
+
 @layer base {
   html {
-    /* الأرقام العربية الشرقية في الواجهة، مع إبقاء الحقول رقمية لاتينية */
     font-feature-settings: "kern";
+    /* شبكة الكنتور: تُظلم في الليل بدل أن تختفي */
+    --grid-line: rgb(36 80 54 / 0.045);
+    color-scheme: light;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    html:not([data-theme="light"]) {
+      --grid-line: rgb(138 212 165 / 0.05);
+      color-scheme: dark;
+    }
+  }
+
+  html[data-theme="dark"] {
+    --grid-line: rgb(138 212 165 / 0.05);
+    color-scheme: dark;
   }
 
   body {
@@ -75,10 +201,9 @@
     inset: 0;
     pointer-events: none;
     z-index: 0;
-    opacity: 0.5;
     background-image:
-      linear-gradient(to left, rgb(36 80 54 / 0.035) 1px, transparent 1px),
-      linear-gradient(to bottom, rgb(36 80 54 / 0.035) 1px, transparent 1px);
+      linear-gradient(to left, var(--grid-line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
     background-size: 28px 28px;
   }
 
@@ -88,7 +213,6 @@
     border-radius: 4px;
   }
 
-  /* الحقول الرقمية تبقى بالأرقام اللاتينية لسهولة الإدخال من لوحة المفاتيح */
   input[type="number"],
   input[type="date"] {
     font-variant-numeric: tabular-nums;

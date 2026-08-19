@@ -12,7 +12,6 @@ import {
   CompassIcon,
   HistoryIcon,
   LedgerIcon,
-  Logo,
   LogoutIcon,
   MenuIcon,
   ReturnIcon,
@@ -20,6 +19,7 @@ import {
   UsersIcon,
   XIcon,
 } from "@/components/icons";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/cn";
 import { num } from "@/lib/format";
 
@@ -61,9 +61,9 @@ export function AppShell({
     <div className="relative z-10 min-h-dvh lg:flex">
       {/* شريط علوي — الهاتف */}
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-line bg-surface/90 px-4 py-3 backdrop-blur lg:hidden">
-        <Link href="/" className="flex items-center gap-2 text-forest-700">
-          <Logo className="size-8" />
+        <Link href="/" className="flex flex-col leading-tight">
           <span className="text-sm font-bold text-ink-900">نظام اللوازم</span>
+          <span className="text-[11px] text-ink-400">مجموعة السنابل</span>
         </Link>
         <button
           type="button"
@@ -104,13 +104,10 @@ export function AppShell({
       <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-l border-line bg-surface lg:flex">
         <Link
           href="/"
-          className="flex items-center gap-2.5 border-b border-line px-5 py-4 text-forest-700"
+          className="block border-b border-line px-5 py-4"
         >
-          <Logo className="size-9" />
-          <span>
-            <span className="block text-sm font-bold text-ink-900">نظام اللوازم</span>
-            <span className="block text-xs text-ink-400">مجموعة السنابل</span>
-          </span>
+          <span className="block text-sm font-bold text-ink-900">نظام اللوازم</span>
+          <span className="block text-xs text-ink-400">مجموعة السنابل الكشفية</span>
         </Link>
         <NavList items={items} pathname={pathname} className="flex-1 overflow-y-auto p-3" />
         <UserPanel user={user} />
@@ -189,6 +186,10 @@ function UserPanel({
           </p>
         </div>
       </div>
+      <div className="mt-2 px-2">
+        <ThemeToggle />
+      </div>
+
       <form action={logout} className="mt-1">
         <button
           type="submit"
