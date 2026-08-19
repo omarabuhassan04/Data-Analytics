@@ -1,0 +1,9 @@
+# التطبيق يقع في مجلد فرعي داخل هذا المستودع، لذلك يُضبط `base` عليه.
+# Netlify يتعرّف على Next.js ويشغّل زمن تشغيله تلقائياً، فلا حاجة لإعلان الإضافة.
+
+[build]
+  base = "sanabel"
+  command = "npm run build"
+
+[build.environment]
+  NODE_VERSION = "22"
