@@ -91,6 +91,7 @@ export default async function PurchaseListPage({
   return (
     <>
       <PageHeader
+        eyebrow="السجلّات"
         title="طلبات الشراء"
         description={
           decidedOnly

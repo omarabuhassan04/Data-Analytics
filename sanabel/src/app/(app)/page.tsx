@@ -108,13 +108,14 @@ export default async function DashboardPage() {
 
   return (
     <>
-      <header className="mb-6">
-        <p className="text-sm text-ink-500">
+      <header className="mb-7">
+        <p className="eyebrow mb-1.5">
           {isTeam ? user.teamName : user.roleLabel}
         </p>
-        <h1 className="mt-0.5 text-2xl font-bold tracking-tight text-ink-900 sm:text-[26px]">
+        <h1 className="display text-[26px] leading-tight text-ink-900 sm:text-[30px]">
           أهلاً {user.fullName}
         </h1>
+        <div className="mt-2.5 h-px w-12 bg-brass-500/70" aria-hidden />
       </header>
 
       {/* ما ينتظر إجراءً من هذا المستخدم يظهر أولاً وبوضوح */}

@@ -23,7 +23,14 @@ const LABEL: Record<Theme, string> = {
  * الاختيار يُكتب على `<html>` مباشرة وفي التخزين المحلي؛ والسكربت في
  * layout.tsx يقرأه قبل أول رسم فلا تومض الصفحة بيضاء ثم تسودّ.
  */
-export function ThemeToggle({ className }: { className?: string }) {
+export function ThemeToggle({
+  className,
+  variant = "plain",
+}: {
+  className?: string;
+  /** "rail" لخلفية الشريط الداكن، "plain" للأسطح العادية */
+  variant?: "plain" | "rail";
+}) {
   const [theme, setTheme] = useState<Theme>("system");
   const [ready, setReady] = useState(false);
 
@@ -50,7 +57,10 @@ export function ThemeToggle({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "flex items-center gap-0.5 rounded-lg border border-line bg-surface-2 p-0.5",
+        "flex items-center gap-0.5 rounded-[0.625rem] p-0.5",
+        variant === "rail"
+          ? "bg-black/25 ring-1 ring-white/8 ring-inset"
+          : "border border-line bg-surface-2",
         className,
       )}
       role="group"
@@ -67,10 +77,14 @@ export function ThemeToggle({ className }: { className?: string }) {
             aria-label={LABEL[option]}
             aria-pressed={active}
             className={cn(
-              "flex size-7 items-center justify-center rounded-md transition-colors",
-              active
-                ? "bg-surface text-forest-700 shadow-sm"
-                : "text-ink-400 hover:text-ink-700",
+              "flex h-7 flex-1 items-center justify-center rounded-lg transition-colors",
+              variant === "rail"
+                ? active
+                  ? "bg-white/12 text-brass-300"
+                  : "text-rail-muted hover:text-rail-fg"
+                : active
+                  ? "bg-surface text-forest-700 shadow-xs"
+                  : "text-ink-400 hover:text-ink-700",
             )}
           >
             <ThemeIcon variant={option} />

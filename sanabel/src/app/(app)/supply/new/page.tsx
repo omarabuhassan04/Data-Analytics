@@ -36,6 +36,7 @@ export default async function NewSupplyPage() {
   return (
     <>
       <PageHeader
+        eyebrow="طلب جديد"
         title="طلب لوازم"
         description="اختر من المتاح في المقر. الطلب يُعتمد آلياً ويُصرف فوراً، وتصبح الأصناف عهدة على فرقتك حتى إرجاعها."
       />

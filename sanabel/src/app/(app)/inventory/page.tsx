@@ -54,6 +54,7 @@ export default async function InventoryPage({
   return (
     <>
       <PageHeader
+        eyebrow="المخزون"
         title="مخزون المقر"
         description={`${num(visible.length)} صنفاً · ${num(totalUnits)} وحدة متاحة للصرف`}
         action={

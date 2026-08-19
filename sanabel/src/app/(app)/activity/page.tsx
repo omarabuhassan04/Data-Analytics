@@ -84,6 +84,7 @@ export default async function ActivityPage({
   return (
     <>
       <PageHeader
+        eyebrow="التدقيق"
         title="سجل العمليات"
         description={
           seesAll

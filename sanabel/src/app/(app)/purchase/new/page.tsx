@@ -18,6 +18,7 @@ export default async function NewPurchasePage() {
   return (
     <>
       <PageHeader
+        eyebrow="طلب جديد"
         title="طلب شراء جديد"
         description="للأصناف غير المتوفّرة في المقر. الطلب يبقى قيد الانتظار حتى يبتّ فيه قائد اللوازم."
       />

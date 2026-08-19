@@ -78,6 +78,7 @@ export default async function SupplyListPage({
   return (
     <>
       <PageHeader
+        eyebrow="السجلّات"
         title="طلبات اللوازم"
         description={
           isTeam

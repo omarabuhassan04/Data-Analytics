@@ -78,6 +78,7 @@ export default async function LedgerPage({
   return (
     <>
       <PageHeader
+        eyebrow="التدقيق"
         title="دفتر حركة المخزون"
         description="كل تغيّر في رصيد أي صنف، بسببه ومنفّذه ووقته والرصيد الناتج عنه."
       />

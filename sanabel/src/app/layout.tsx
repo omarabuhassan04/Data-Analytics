@@ -1,13 +1,26 @@
 import type { Metadata, Viewport } from "next";
-import { Cairo } from "next/font/google";
+import { Cairo, Noto_Kufi_Arabic } from "next/font/google";
 
 import "./globals.css";
 
-// خط عربي واحد للواجهة كلها. أوزان محدودة تُبقي حجم التحميل صغيراً.
-const arabic = Cairo({
+/**
+ * خطّان بدورين مختلفين.
+ *
+ * الكوفي للعناوين: أشكاله الهندسية تحمل وقاراً وهوية، لكنه يتعب العين في
+ * الفقرات والجداول. وكايرو للنص والواجهة: محايد وواضح عند الأحجام الصغيرة.
+ * التوتّر بين الاثنين هو ما يعطي الصفحة إحساس المنتج المصمَّم لا المُجمَّع.
+ */
+const body = Cairo({
   subsets: ["arabic", "latin"],
   weight: ["400", "500", "600", "700"],
-  variable: "--font-arabic",
+  variable: "--font-body",
+  display: "swap",
+});
+
+const display = Noto_Kufi_Arabic({
+  subsets: ["arabic"],
+  weight: ["600", "700"],
+  variable: "--font-display-ar",
   display: "swap",
 });
 
@@ -22,8 +35,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f4f2ec" },
-    { media: "(prefers-color-scheme: dark)", color: "#0f1411" },
+    { media: "(prefers-color-scheme: light)", color: "#f3f1ea" },
+    { media: "(prefers-color-scheme: dark)", color: "#0c110e" },
   ],
   width: "device-width",
   initialScale: 1,
@@ -46,7 +59,12 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ar" dir="rtl" className={arabic.variable} suppressHydrationWarning>
+    <html
+      lang="ar"
+      dir="rtl"
+      className={`${body.variable} ${display.variable}`}
+      suppressHydrationWarning
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: noFlashScript }} />
       </head>

@@ -1,187 +1,238 @@
 @import "tailwindcss";
 
 /*
-  الهوية البصرية — كشفية بلا طفولية.
-  النهار: ورق رملي وأخضر غابة. الليل: مخيّم بعد الغروب — فحمي مائل للأخضر.
+  ────────────────────────────────────────────────────────────────────────────
+  نظام التصميم — «الكشفية بوصفها منتجاً رقمياً راقياً»
+  ────────────────────────────────────────────────────────────────────────────
 
-  كل لون معرّف مرّتين: مرّة في `:root` للنهار، ومرّة في كتلتَي الليل. المكوّنات
-  لا تعرف بالوضع شيئاً؛ تستعمل الاسم نفسه (`bg-surface`, `text-ink-900`) فينقلب
-  التطبيق كلّه من مكان واحد.
+  المرجع البصري ليس مخيّماً للأطفال بل عُدّة ميدانية جيّدة الصنع: جلد وبوصلة
+  نحاسية وخريطة كنتور. من هنا جاءت القرارات الثلاثة التي تحكم كل ما دونها:
 
-  الأدوار ثابتة عبر الوضعين:
-    ink   = قوّة تباين النص (900 أقوى)
-    line  = الحدود
-    brand = خلفية الأزرار الأساسية، ومعها brand-fg للنص فوقها
-    forest-700 = لون الإبراز في النصوص والروابط
+  ١) الشريط الجانبي أخضر داكن في الوضعين. هو ثابت الهوية في الصفحة، والمحتوى
+     يتنفّس بجانبه. لهذا له مجموعة ألوان مستقلّة (rail-*) لا تنقلب مع المظهر.
+
+  ٢) النحاسي لا يُستعمل كلوناً للمساحات بل كخيط رفيع: مؤشّر التبويب النشط،
+     شعرة أعلى البطاقة، خط تحت العنوان. قلّته هي ما يجعله يبدو ثميناً.
+
+  ٣) خطّان لا خط واحد: كوفي للعناوين (وقار وهوية)، وكايرو للنص والواجهة
+     (وضوح عند الأحجام الصغيرة). التباين بينهما هو نصف الإحساس بالرقيّ.
+
+  كل لون معرَّف مرّتين — نهاراً وليلاً — والمكوّنات لا تعرف بالوضع شيئاً.
 */
+
 @theme {
-  --color-canvas: #f4f2ec;
+  /* ── الأسطح ─────────────────────────────────────────────── */
+  --color-canvas: #f3f1ea;
   --color-surface: #ffffff;
-  --color-surface-2: #faf9f5;
+  --color-surface-2: #faf8f2;
+  --color-surface-3: #f1eee5;
 
-  --color-line: #e2ded2;
-  --color-line-strong: #cec8b6;
+  --color-line: #e7e2d6;
+  --color-line-strong: #d3ccbb;
 
-  --color-ink-900: #1c1f1a;
-  --color-ink-700: #3d443a;
-  --color-ink-500: #6b7364;
-  --color-ink-400: #8c9384;
+  /* ── النص: 900 أقوى تبايناً ──────────────────────────────── */
+  --color-ink-900: #171b17;
+  --color-ink-700: #39413a;
+  --color-ink-500: #69726a;
+  --color-ink-400: #939b93;
 
-  /* خلفية الأزرار الأساسية — تبقى خضراء مشبعة في الوضعين */
-  --color-brand: #245036;
-  --color-brand-hover: #2f6244;
-  --color-brand-active: #14301f;
+  /* ── الشريط الجانبي: أخضر عميق ثابت في الوضعين ───────────── */
+  --color-rail: #12281c;
+  --color-rail-2: #17331f;
+  --color-rail-line: #23412c;
+  --color-rail-fg: #eef3ec;
+  --color-rail-muted: #94ab9c;
+
+  /* ── العلامة: خلفية الأزرار الأساسية ─────────────────────── */
+  --color-brand: #1f4a31;
+  --color-brand-hover: #296140;
+  --color-brand-active: #16351f;
   --color-brand-fg: #ffffff;
 
-  --color-forest-50: #eef4ef;
-  --color-forest-100: #d6e5da;
-  --color-forest-300: #8ab39a;
-  --color-forest-500: #3f7a56;
-  --color-forest-600: #2f6244;
-  --color-forest-700: #245036;
+  /* ── الأخضر: نصوص وإبراز ─────────────────────────────────── */
+  --color-forest-50: #edf3ee;
+  --color-forest-100: #d8e6dc;
+  --color-forest-300: #86ac95;
+  --color-forest-500: #3d7553;
+  --color-forest-600: #2c5c3e;
+  --color-forest-700: #204830;
 
-  --color-brass-50: #fbf3e2;
-  --color-brass-100: #f5e6c8;
-  --color-brass-500: #b5822a;
-  --color-brass-600: #97691d;
-  --color-brass-700: #7a5416;
+  /* ── النحاس: لمسة الترف، بخُلٍ شديد ──────────────────────── */
+  --color-brass-50: #faf2e1;
+  --color-brass-100: #f2e4c6;
+  --color-brass-300: #d9b463;
+  --color-brass-500: #b3872f;
+  --color-brass-600: #966d20;
+  --color-brass-700: #785518;
 
-  --color-danger-50: #fdecec;
-  --color-danger-500: #b3352f;
-  --color-danger-700: #8a251f;
+  --color-danger-50: #fceceb;
+  --color-danger-500: #ac332d;
+  --color-danger-700: #85231e;
 
-  --color-warn-50: #fdf3e0;
-  --color-warn-500: #a9762a;
+  --color-warn-50: #fbf2e0;
+  --color-warn-500: #a2712a;
 
-  --color-ok-50: #e9f4ec;
-  --color-ok-500: #2f7a4c;
+  --color-ok-50: #e8f3eb;
+  --color-ok-500: #2c7449;
 
-  --font-sans: var(--font-arabic), system-ui, sans-serif;
+  /* ── الخطوط ──────────────────────────────────────────────── */
+  --font-sans: var(--font-body), system-ui, sans-serif;
+  --font-display: var(--font-display-ar), var(--font-body), serif;
 
-  --radius-card: 0.875rem;
+  --radius-card: 1rem;
 
-  --shadow-card: 0 1px 2px rgb(28 31 26 / 0.05), 0 1px 3px rgb(28 31 26 / 0.04);
-  --shadow-pop: 0 10px 30px -10px rgb(28 31 26 / 0.25);
+  /* ── الظلال: طبقتان — حافّة قريبة وانتشار بعيد ───────────── */
+  --shadow-card:
+    0 1px 1px rgb(23 27 23 / 0.04),
+    0 2px 6px -2px rgb(23 27 23 / 0.06);
+  --shadow-lift:
+    0 2px 4px rgb(23 27 23 / 0.05),
+    0 12px 28px -12px rgb(23 27 23 / 0.18);
+  --shadow-pop:
+    0 4px 8px rgb(23 27 23 / 0.08),
+    0 24px 48px -20px rgb(23 27 23 / 0.32);
 }
 
-/*
-  الوضع الليلي.
-  يُعرَّف مرّتين عمداً: مرّة لمن اختاره صراحةً من المبدّل، ومرّة لمن ترك
-  الاختيار لنظامه. الحارس `:not([data-theme="light"])` يمنع النظام من نقض
-  اختيار المستخدم الصريح للنهار.
-*/
 @layer theme {
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --color-canvas: #0f1411;
-      --color-surface: #161d18;
-      --color-surface-2: #1c241e;
+      --color-canvas: #0c110e;
+      --color-surface: #131a15;
+      --color-surface-2: #18201a;
+      --color-surface-3: #1e2721;
 
-      --color-line: #27322b;
-      --color-line-strong: #3a4841;
+      --color-line: #232e26;
+      --color-line-strong: #35423a;
 
-      --color-ink-900: #eef2ed;
-      --color-ink-700: #c6cfc7;
-      --color-ink-500: #939e96;
-      --color-ink-400: #74807a;
+      --color-ink-900: #eef2ec;
+      --color-ink-700: #c4cec6;
+      --color-ink-500: #929d95;
+      --color-ink-400: #737f77;
 
-      --color-brand: #2f7a52;
-      --color-brand-hover: #389060;
-      --color-brand-active: #256341;
+      --color-rail: #0f1e15;
+      --color-rail-2: #14261a;
+      --color-rail-line: #23392c;
+      --color-rail-fg: #e9f0e9;
+      --color-rail-muted: #8ba394;
+
+      --color-brand: #2d7a4f;
+      --color-brand-hover: #35905d;
+      --color-brand-active: #24623f;
       --color-brand-fg: #ffffff;
 
-      --color-forest-50: #16241c;
-      --color-forest-100: #1d3226;
-      --color-forest-300: #4e8b66;
-      --color-forest-500: #6cba8b;
-      --color-forest-600: #7ac697;
-      --color-forest-700: #8ad4a5;
+      --color-forest-50: #15241a;
+      --color-forest-100: #1c3124;
+      --color-forest-300: #4d8a64;
+      --color-forest-500: #6ab98a;
+      --color-forest-600: #7cc79a;
+      --color-forest-700: #8bd4a6;
 
-      --color-brass-50: #2a2113;
-      --color-brass-100: #3a2d18;
-      --color-brass-500: #d9a45c;
-      --color-brass-600: #a9761f;
-      --color-brass-700: #8a5f16;
+      --color-brass-50: #291f11;
+      --color-brass-100: #392c17;
+      --color-brass-300: #a87f36;
+      --color-brass-500: #d7a355;
+      --color-brass-600: #b98a3a;
+      --color-brass-700: #8f6a26;
 
-      --color-danger-50: #2c1616;
-      --color-danger-500: #e57b72;
-      --color-danger-700: #c85a51;
+      --color-danger-50: #2a1514;
+      --color-danger-500: #e37a71;
+      --color-danger-700: #c65950;
 
-      --color-warn-50: #2b2112;
-      --color-warn-500: #d9a55c;
+      --color-warn-50: #2a2011;
+      --color-warn-500: #d8a45b;
 
-      --color-ok-50: #12271b;
-      --color-ok-500: #63c08c;
+      --color-ok-50: #11261a;
+      --color-ok-500: #61be8a;
 
-      --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 1px 3px rgb(0 0 0 / 0.3);
-      --shadow-pop: 0 10px 30px -10px rgb(0 0 0 / 0.7);
+      --shadow-card:
+        0 1px 1px rgb(0 0 0 / 0.3),
+        0 2px 6px -2px rgb(0 0 0 / 0.4);
+      --shadow-lift:
+        0 2px 4px rgb(0 0 0 / 0.35),
+        0 12px 28px -12px rgb(0 0 0 / 0.6);
+      --shadow-pop:
+        0 4px 8px rgb(0 0 0 / 0.4),
+        0 24px 48px -20px rgb(0 0 0 / 0.75);
     }
   }
 
   :root[data-theme="dark"] {
-    --color-canvas: #0f1411;
-    --color-surface: #161d18;
-    --color-surface-2: #1c241e;
+    --color-canvas: #0c110e;
+    --color-surface: #131a15;
+    --color-surface-2: #18201a;
+    --color-surface-3: #1e2721;
 
-    --color-line: #27322b;
-    --color-line-strong: #3a4841;
+    --color-line: #232e26;
+    --color-line-strong: #35423a;
 
-    --color-ink-900: #eef2ed;
-    --color-ink-700: #c6cfc7;
-    --color-ink-500: #939e96;
-    --color-ink-400: #74807a;
+    --color-ink-900: #eef2ec;
+    --color-ink-700: #c4cec6;
+    --color-ink-500: #929d95;
+    --color-ink-400: #737f77;
 
-    --color-brand: #2f7a52;
-    --color-brand-hover: #389060;
-    --color-brand-active: #256341;
+    --color-rail: #0f1e15;
+    --color-rail-2: #14261a;
+    --color-rail-line: #23392c;
+    --color-rail-fg: #e9f0e9;
+    --color-rail-muted: #8ba394;
+
+    --color-brand: #2d7a4f;
+    --color-brand-hover: #35905d;
+    --color-brand-active: #24623f;
     --color-brand-fg: #ffffff;
 
-    --color-forest-50: #16241c;
-    --color-forest-100: #1d3226;
-    --color-forest-300: #4e8b66;
-    --color-forest-500: #6cba8b;
-    --color-forest-600: #7ac697;
-    --color-forest-700: #8ad4a5;
+    --color-forest-50: #15241a;
+    --color-forest-100: #1c3124;
+    --color-forest-300: #4d8a64;
+    --color-forest-500: #6ab98a;
+    --color-forest-600: #7cc79a;
+    --color-forest-700: #8bd4a6;
 
-    --color-brass-50: #2a2113;
-    --color-brass-100: #3a2d18;
-    --color-brass-500: #d9a45c;
-    --color-brass-600: #a9761f;
-    --color-brass-700: #8a5f16;
+    --color-brass-50: #291f11;
+    --color-brass-100: #392c17;
+    --color-brass-500: #d7a355;
+    --color-brass-600: #b98a3a;
+    --color-brass-700: #8f6a26;
 
-    --color-danger-50: #2c1616;
-    --color-danger-500: #e57b72;
-    --color-danger-700: #c85a51;
+    --color-danger-50: #2a1514;
+    --color-danger-500: #e37a71;
+    --color-danger-700: #c65950;
 
-    --color-warn-50: #2b2112;
-    --color-warn-500: #d9a55c;
+    --color-warn-50: #2a2011;
+    --color-warn-500: #d8a45b;
 
-    --color-ok-50: #12271b;
-    --color-ok-500: #63c08c;
+    --color-ok-50: #11261a;
+    --color-ok-500: #61be8a;
 
-    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 1px 3px rgb(0 0 0 / 0.3);
-    --shadow-pop: 0 10px 30px -10px rgb(0 0 0 / 0.7);
+    --shadow-card:
+      0 1px 1px rgb(0 0 0 / 0.3),
+      0 2px 6px -2px rgb(0 0 0 / 0.4);
+    --shadow-lift:
+      0 2px 4px rgb(0 0 0 / 0.35),
+      0 12px 28px -12px rgb(0 0 0 / 0.6);
+    --shadow-pop:
+      0 4px 8px rgb(0 0 0 / 0.4),
+      0 24px 48px -20px rgb(0 0 0 / 0.75);
   }
 }
 
 @layer base {
   html {
     font-feature-settings: "kern";
-    /* شبكة الكنتور: تُظلم في الليل بدل أن تختفي */
-    --grid-line: rgb(36 80 54 / 0.045);
     color-scheme: light;
+    --motif: rgb(31 74 49 / 0.055);
   }
 
   @media (prefers-color-scheme: dark) {
     html:not([data-theme="light"]) {
-      --grid-line: rgb(138 212 165 / 0.05);
       color-scheme: dark;
+      --motif: rgb(139 212 166 / 0.05);
     }
   }
 
   html[data-theme="dark"] {
-    --grid-line: rgb(138 212 165 / 0.05);
     color-scheme: dark;
+    --motif: rgb(139 212 166 / 0.05);
   }
 
   body {
@@ -189,11 +240,13 @@
     color: var(--color-ink-900);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
 
   /*
-    شبكة كنتورية خفيفة خلف الصفحة — إيحاء بخريطة الاستكشاف دون ضجيج.
-    منفصلة عن المحتوى تماماً ولا تؤثر على التباين.
+    خطوط كنتور خريطة، لا شبكة مربّعات.
+    تُرسم عبر قناع لا صورة، فيأتي لونها من متغيّر يتبع المظهر بدل أن يكون
+    محفوراً في الملف — وإلا لاختفت ليلاً أو صرخت نهاراً.
   */
   body::before {
     content: "";
@@ -201,16 +254,18 @@
     inset: 0;
     pointer-events: none;
     z-index: 0;
-    background-image:
-      linear-gradient(to left, var(--grid-line) 1px, transparent 1px),
-      linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
-    background-size: 28px 28px;
+    background-color: var(--motif);
+    -webkit-mask-image: var(--contour);
+    mask-image: var(--contour);
+    -webkit-mask-size: 320px 320px;
+    mask-size: 320px 320px;
+    --contour: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320' viewBox='0 0 320 320'%3E%3Cg fill='none' stroke='%23000' stroke-width='1.4'%3E%3Cpath d='M-20 44C40 8 96 76 160 44s120 26 180-8'/%3E%3Cpath d='M-20 92C44 58 100 122 160 92s118 24 180-10'/%3E%3Cpath d='M-20 140C48 108 104 168 160 140s116 22 180-12'/%3E%3Cpath d='M-20 188C52 158 108 214 160 188s114 20 180-14'/%3E%3Cpath d='M-20 236C56 208 112 260 160 236s112 18 180-16'/%3E%3Cpath d='M-20 284C60 258 116 306 160 284s110 16 180-18'/%3E%3C/g%3E%3C/svg%3E");
   }
 
   :focus-visible {
     outline: 2px solid var(--color-forest-500);
     outline-offset: 2px;
-    border-radius: 4px;
+    border-radius: 6px;
   }
 
   input[type="number"],
@@ -230,6 +285,7 @@
 }
 
 @layer utilities {
+  /* البطاقة الأساسية */
   .surface {
     background-color: var(--color-surface);
     border: 1px solid var(--color-line);
@@ -237,9 +293,59 @@
     box-shadow: var(--shadow-card);
   }
 
-  /* حركة الدخول: خفيفة وقصيرة، تُلغى كلياً عند تفضيل تقليل الحركة */
+  /* بطاقة تُرفع عند المرور — للبطاقات القابلة للنقر وحدها */
+  .surface-lift {
+    transition:
+      box-shadow 0.2s ease,
+      transform 0.2s ease,
+      border-color 0.2s ease;
+  }
+  .surface-lift:hover {
+    box-shadow: var(--shadow-lift);
+    border-color: var(--color-line-strong);
+    transform: translateY(-1px);
+  }
+
+  /* الخيط النحاسي: شعرة أعلى البطاقة تمنحها ثِقلاً بلا ضجيج */
+  .rule-brass::before {
+    content: "";
+    position: absolute;
+    inset-inline: 1.25rem;
+    top: 0;
+    height: 2px;
+    border-radius: 0 0 2px 2px;
+    background: linear-gradient(
+      to left,
+      transparent,
+      var(--color-brass-500),
+      transparent
+    );
+    opacity: 0.75;
+  }
+
+  /* العنوان الفوقي: صغير، متباعد الحروف، هادئ */
+  .eyebrow {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.11em;
+    color: var(--color-ink-400);
+  }
+
+  /* خط العناوين */
+  .display {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: -0.005em;
+  }
+
   .enter {
-    animation: enter 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: enter 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* أرقام الجداول: عرض ثابت حتى تصطفّ الخانات رأسياً */
+  .figures {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.01em;
   }
 }
 
@@ -261,5 +367,8 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+  .surface-lift:hover {
+    transform: none;
   }
 }

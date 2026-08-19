@@ -53,6 +53,7 @@ export default async function ManageItemsPage({
   return (
     <>
       <PageHeader
+        eyebrow="الإدارة"
         title="إدارة الأصناف"
         description="إضافة الأصناف وتعديلها وتسجيل الجرد. كل تغيّر في رصيد يمرّ عبر دفتر الحركة."
         action={

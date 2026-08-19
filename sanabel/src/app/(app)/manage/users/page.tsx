@@ -34,6 +34,7 @@ export default async function ManageUsersPage() {
   return (
     <>
       <PageHeader
+        eyebrow="الإدارة"
         title="الحسابات"
         description="إنشاء الحسابات وتغيير كلمات المرور وتعطيل ما لم يعد مستخدماً."
         action={<NewUserButton teams={teams} />}

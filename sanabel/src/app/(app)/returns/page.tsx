@@ -68,6 +68,7 @@ export default async function ReturnsPage() {
   return (
     <>
       <PageHeader
+        eyebrow="المتابعة"
         title="العهد والإرجاع"
         description={
           isTeam
