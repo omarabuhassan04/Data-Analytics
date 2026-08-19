@@ -426,7 +426,12 @@ export function StatCard({
           </span>
         ) : null}
       </div>
-      <p className="display figures mt-3 text-[32px] leading-none text-ink-900">
+      {/*
+        الأرقام بخط النص لا بخط العناوين.
+        الصفر العربي نقطة في الأصل، والكوفي يحوّله إلى معيّن كبير عند هذا
+        الحجم فيُقرأ رمزاً لا رقماً. الخط النصّي يبقيه رقماً.
+      */}
+      <p className="figures mt-3 text-[32px] leading-none font-bold text-ink-900">
         {value}
       </p>
       {hint ? <p className="mt-2 text-xs text-ink-400">{hint}</p> : null}
